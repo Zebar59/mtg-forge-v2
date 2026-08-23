@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MTG Forge</title>
+<style>
+:root{--bg:#070707;--panel:#111;--panel2:#090909;--line:#292929;--orange:#ff6a00;--text:#f5f5f5;--muted:#999;--ok:#69d99a;--warn:#ffb45c;--input-bg:#080808;--card-bg:#090909}
+[data-theme="light"]{--bg:#f4f2ee;--panel:#fff;--panel2:#f7f5f2;--line:#e0ddd6;--orange:#d85400;--text:#181410;--muted:#6b655c;--ok:#1f8f52;--warn:#b5690a;--input-bg:#fff;--card-bg:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 80% 0,#321505,#070707 55%);color:var(--text);font-family:system-ui,sans-serif;transition:background .2s,color .2s}
+[data-theme="light"] body{background:radial-gradient(circle at 80% 0,#ffe4c7,#f4f2ee 55%)}
+header{padding:18px 5%;border-bottom:1px solid var(--line);font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
+header span{color:var(--orange)}
+.header-actions{display:flex;align-items:center;gap:14px;font-weight:400}
+.icon-btn{padding:8px 10px;margin:0;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--text);cursor:pointer;font-size:15px;line-height:1}
+main{max-width:1100px;margin:auto;padding:45px 20px}
+.hero{text-align:center;color:var(--muted);margin-bottom:35px}
+h1{font-size:clamp(38px,7vw,65px);line-height:1;margin:10px;color:var(--text)}
+h1 span{color:var(--orange)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.cards-box{width:100%;margin-top:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+textarea{width:100%;height:280px;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:14px;font:14px monospace}
+button{padding:12px 16px;border-radius:9px;border:0;font-weight:800;margin-top:10px;cursor:pointer;font-family:inherit}
+.primary{background:var(--orange);color:#160900}.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.stats{margin:12px 0;color:var(--ok)}
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{display:flex;align-items:flex-start;gap:12px;background:var(--card-bg);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.card img,.card .pic{width:82px;height:115px;object-fit:cover;border-radius:6px;flex:0 0 auto;cursor:pointer}
+.card .pic{background:var(--panel2)}
+.card-info{flex:1;min-width:0}
+.card b{display:block;font-size:18px;line-height:1.22;white-space:normal;overflow-wrap:break-word;word-break:normal}
+.meta{font-size:14px;line-height:1.35;color:var(--muted);margin-top:5px;overflow-wrap:break-word;word-break:normal}
+.status-col{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.status{font-size:13px;color:var(--ok);white-space:nowrap}
+.edition-btn{margin:0;padding:5px 8px;font-size:12px;font-weight:600;background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.print-picker{display:none;margin-top:10px;flex-wrap:wrap;gap:6px}
+.print-picker.open{display:flex}
+.print-picker img{width:44px;height:62px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;opacity:.75}
+.print-picker img:hover{opacity:1}
+.print-picker img.chosen{border-color:var(--orange);opacity:1}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.tag.bad{color:#ff6b6b;border-color:#ff6b6b55}
+.note{font-size:12px;color:var(--muted);margin-top:8px}.empty{text-align:center;color:var(--muted);padding:70px 10px}
+.warning-box{margin-top:16px;padding:14px 16px;border-radius:12px;background:#3a1f0333;border:1px solid var(--warn);font-size:13px;color:var(--text)}
+.warning-box b{color:var(--warn)}
+@media(max-width:800px){
+  .grid,.top-grid{grid-template-columns:1fr}
+  .results{grid-template-columns:repeat(2,minmax(0,1fr))}
+  main{padding-top:30px}
+}
+@media(max-width:600px){
+  .results{grid-template-columns:1fr}
+  .card img{width:72px;height:101px}
+  .card b{font-size:16px}
+}
+
+#pdfPrint{display:none}
+.modal{display:none;position:fixed;inset:0;background:#000d;z-index:50;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.modal.show{display:flex}.modal-content{position:relative;cursor:default}
+.modal-content img{display:block;max-width:90vw;max-height:88vh;border-radius:12px;box-shadow:0 20px 80px #000}
+.close{position:absolute;right:-8px;top:-45px;background:#222;color:#fff;border:1px solid #555;border-radius:8px;padding:8px 12px;margin:0;cursor:pointer}
+
+@media print{
+  @page{margin:0}
+  html,body{margin:0;background:#fff}
+  body{color:#000}
+  header,.hero,.inputbox,#pdfbox,#analysisBox,.decklist-section,.accordion{display:none!important}
+  main{max-width:none;padding:0;margin:0}
+  .grid{display:block}
+  .box{border:0;padding:0;background:#fff}
+  #results{display:none!important}
+  #pdfPrint{
+    display:block!important;
+  }
+  .print-page{
+    display:grid!important;
+    box-sizing:border-box;
+    width:var(--page-w,210mm);
+    margin:0;
+    padding:8.5mm;
+    grid-template-columns:repeat(3,var(--print-card-w,63mm));
+    grid-auto-rows:var(--print-card-h,88mm);
+    column-gap:var(--print-gap,2mm);
+    row-gap:var(--print-gap,2mm);
+    align-content:start;
+    page-break-after:always;
+  }
+  .print-page:last-child{page-break-after:auto}
+  .print-card{
+    width:var(--print-card-w,63mm);
+    height:var(--print-card-h,88mm);
+    overflow:hidden;
+    break-inside:avoid;
+    page-break-inside:avoid;
+    background:#fff;
+    position:relative;
+  }
+  .print-card img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:fill;
+    image-rendering:auto;
+  }
+  .print-card.blank{visibility:hidden}
+  .crop-marks .print-card:not(.blank){
+    outline:.15mm dashed #999;
+    outline-offset:calc(var(--print-gap,2mm) / 2.2);
+  }
+  .cardback{
+    width:100%;height:100%;
+    background:
+      radial-gradient(circle at 50% 38%,#2a2340,#0d0b16 70%);
+    border:.6mm solid #ff6a00;
+    border-radius:2.5mm;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cardback-emblem{
+    width:55%;aspect-ratio:1;border:1mm solid #ff6a00;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:#ff6a00;font-weight:900;font-size:5mm;letter-spacing:.5mm;text-align:center;
+    font-family:system-ui,sans-serif;
+  }
+}
+
+.analysis{margin-top:28px}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.statbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}.statbox b{display:block;font-size:24px;color:var(--orange)}.statbox span{font-size:11px;color:var(--muted)}.type-list{display:grid;gap:7px}.type-row{display:flex;justify-content:space-between;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}.mana-chart{display:flex;align-items:flex-end;gap:6px;height:150px;margin-top:15px;padding:10px 0;border-bottom:1px solid var(--line)}.mana-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.mana-bar{width:100%;max-width:42px;background:var(--orange);border-radius:5px 5px 0 0;min-height:2px}.mana-num,.analysis-note{font-size:11px;color:var(--muted)}.mana-count{font-size:11px;color:var(--text)}.color-pips{display:flex;gap:7px;justify-content:center;margin-top:10px;flex-wrap:wrap}.pip{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:800}.pip.active{border-color:var(--orange);box-shadow:0 0 12px #ff6a0055}
+.legal-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.legal-pill{font-size:11px;padding:5px 9px;border-radius:99px;background:var(--panel2);border:1px solid var(--line)}
+.legal-pill.ok{color:var(--ok);border-color:var(--ok)}
+.legal-pill.no{color:var(--muted);text-decoration:line-through}
+@media(max-width:600px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
+
+.accordion{margin-top:24px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+.accordion-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:var(--panel2);color:var(--text);border:0;cursor:pointer;text-align:left;font:inherit}
+.accordion-toggle:hover{filter:brightness(1.15)}
+.accordion-toggle .chev{font-size:20px;color:var(--orange);transition:transform .2s ease}
+.accordion.open .chev{transform:rotate(180deg)}
+.accordion-body{display:none;padding:0 16px 18px;border-top:1px solid var(--line)}
+.accordion.open .accordion-body{display:block}
+.accordion-title{font-weight:800}
+.accordion-sub{font-size:12px;color:var(--muted);margin-top:3px}
+
+.decklist-section{width:100%;margin-top:28px}
+.decklist-heading{margin:0 0 14px}
+
+@media screen{
+  .decklist-section{width:100%}
+  #results{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:14px !important;
+    width:100% !important;
+  }
+  #results > *{
+    min-width:0 !important;
+    width:auto !important;
+    margin:0 !important;
+  }
+}
+
+@media screen and (max-width:900px){
+  #results{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}
+@media screen and (max-width:600px){
+  #results{grid-template-columns:1fr !important}
+}
+
+.top-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:28px;
+  align-items:stretch;
+  width:100%;
+  margin-bottom:32px;
+}
+.top-grid > .inputbox,
+.top-grid > .analysis{
+  box-sizing:border-box;
+  height:100%;
+  margin-top:0 !important;
+}
+
+.dropzone{border:1px dashed var(--line);border-radius:10px;padding:8px 10px;font-size:11px;color:var(--muted);margin-top:8px;text-align:center}
+.dropzone.drag{border-color:var(--orange);color:var(--orange)}
+
+.print-options{display:flex;flex-direction:column;gap:10px}
+.opt-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:13px}
+.opt-row label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+select,.numinput{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px}
+</style>
+</head>
+<body>
+<header>
+  <span>⚒ <span>MTG</span> FORGE</span>
+  <div class="header-actions">
+    <button class="icon-btn" id="themeToggle" title="Changer de thème">🌙</button>
+    <small style="color:var(--muted);font-size:12px">V0.7.0</small>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+<div>🇫🇷 L'atelier français du proxy</div>
+<h1>Prépare ton deck.<br><span>Imprime-le.</span></h1>
+<p>Images haute résolution et mise en page A4/Letter optimisée pour l'impression.</p>
+</section>
+
+<div class="top-grid">
+<div class="box inputbox">
+<h2>📋 Ma decklist</h2>
+<textarea id="deck">Commander
+1 The Great Goblin
+
+Deck
+1 Sol Ring
+1 Lightning Bolt
+1 Kiki-Jiki, Mirror Breaker
+1 Krenko, Mob Boss
+1 Skullclamp
+2 Mountain
+2 Swamp</textarea>
+<div class="dropzone" id="dropzone">Glisse un fichier .txt ici pour l'importer</div>
+<br>
+<button class="primary" id="analyze">⚒ Analyser mon deck</button>
+<button class="secondary" id="clear">Effacer</button>
+<div class="note">Format : 1 Nom de carte. Commander / Deck facultatifs. Ta liste est sauvegardée automatiquement dans ce navigateur.</div>
+</div>
+
+<section class="analysis box" id="analysisBox" style="display:none">
+<h2>📊 Analyse du deck</h2>
+<div class="summary-grid">
+<div class="statbox"><b id="aTotal">0</b><span>Cartes</span></div><div class="statbox"><b id="aLands">0</b><span>Terrains</span></div><div class="statbox"><b id="aAvg">0</b><span>Coût moyen</span></div>
+<div class="statbox"><b id="aColors">—</b><span>Couleurs</span></div><div class="statbox"><b id="aNonland">0</b><span>Non-terrains</span></div><div class="statbox"><b id="aUnique">0</b><span>Cartes différentes</span></div>
+</div>
+<div class="grid" style="margin-top:18px"><div class="box" style="padding:14px"><h3>🃏 Types de cartes</h3><div class="type-list" id="typeList"></div></div><div class="box" style="padding:14px"><h3>🌈 Identité couleur</h3><div class="color-pips" id="colorPips"></div><div class="analysis-note">Basé sur les cartes reconnues.</div></div></div>
+<div class="box" style="padding:16px;margin-top:18px"><h3>📈 Courbe de mana</h3><div class="mana-chart" id="manaChart"></div><div class="analysis-note">Les terrains ne sont pas comptés.</div></div>
+<div class="box" style="padding:16px;margin-top:18px"><h3>⚖️ Légalité &amp; prix</h3><div class="legal-list" id="legalList"></div><div class="analysis-note" id="priceNote" style="margin-top:10px"></div></div>
+<div id="singletonWarning"></div>
+</section>
+
+</div>
+
+<div class="box cards-box" id="pdfbox">
+
+<h2>🔎 Résultat</h2>
+<div id="stats" class="stats"></div>
+<div id="results"><div class="empty">Lance l'analyse pour commencer.</div></div>
+<div class="actions">
+<div class="print-options">
+  <div class="opt-row">
+    <label for="gap">↔️ Écart entre les cartes</label>
+    <input id="gap" class="numinput" type="number" min="0" max="3.5" step="0.5" value="2" style="width:65px">
+    <span style="font-size:12px;color:var(--muted)">mm</span>
+  </div>
+  <div class="opt-row">
+    <label for="paperFormat">📄 Format papier</label>
+    <select id="paperFormat" class="numinput">
+      <option value="a4">A4</option>
+      <option value="letter">US Letter</option>
+    </select>
+  </div>
+  <div class="opt-row">
+    <label><input type="checkbox" id="excludeBasics"> Retirer les terrains de base du PDF (pas besoin de les imprimer)</label>
+  </div>
+  <div class="opt-row">
+    <label><input type="checkbox" id="printBacks"> Imprimer aussi les dos de carte (recto-verso)</label>
+  </div>
+  <div class="opt-row">
+    <label><input type="checkbox" id="cropMarks" checked> Repères de découpe</label>
+  </div>
+  <div class="note">2 mm conseillé pour l'écart • le recto-verso suppose une impression avec retournement sur le bord long (à tester une fois avant un gros tirage).</div>
+</div>
+<button class="primary" id="pdf" disabled>🖨️ Préparer le PDF</button>
+</div>
+<div id="pdfmsg" class="note"></div>
+</div>
+
+<div id="pdfPrint"></div>
+</main>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <button class="close" id="closeModal">✕</button>
+    <img id="modalImage" alt="Aperçu de la carte">
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+
+// ===== Thème clair / sombre =====
+(function initTheme(){
+  const saved=localStorage.getItem('mtgforge_theme');
+  if(saved==='light'){document.documentElement.setAttribute('data-theme','light');$('themeToggle')&&($('themeToggle').textContent='☀️');}
+})();
+$('themeToggle').addEventListener('click',()=>{
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){document.documentElement.removeAttribute('data-theme');$('themeToggle').textContent='🌙';localStorage.setItem('mtgforge_theme','dark');}
+  else{document.documentElement.setAttribute('data-theme','light');$('themeToggle').textContent='☀️';localStorage.setItem('mtgforge_theme','light');}
+});
+
+// ===== Sauvegarde locale de la decklist =====
+(function initDeckSave(){
+  const saved=localStorage.getItem('mtgforge_decklist');
+  if(saved && saved.trim()) $('deck').value=saved;
+})();
+let saveTimer=null;
+$('deck').addEventListener('input',()=>{
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>localStorage.setItem('mtgforge_decklist',$('deck').value),400);
+});
+
+// ===== Import d'un fichier .txt par glisser-déposer =====
+const dropzone=$('dropzone');
+['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.add('drag')}));
+['dragleave','drop'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.remove('drag')}));
+dropzone.addEventListener('drop',e=>{
+  const file=e.dataTransfer.files && e.dataTransfer.files[0];
+  if(!file) return;
+  if(!/\.(txt)$/i.test(file.name)){
+    dropzone.textContent='Seuls les fichiers .txt sont acceptés pour le moment.';
+    setTimeout(()=>dropzone.textContent='Glisse un fichier .txt ici pour l\u2019importer',2500);
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=()=>{ $('deck').value=reader.result; localStorage.setItem('mtgforge_decklist',reader.result); };
+  reader.readAsText(file,'utf-8');
+});
+
+let printCards=[];let analyzedCards=[];let cardEntries=[];let isCommanderFormat=false;
+
+function normalizeCardName(name){
+  return name
+    .replace(/[\u2018\u2019]/g,"'")
+    .replace(/[\u2010\u2011\u2012\u2013\u2014]/g,"-")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function parseDeck(text){
+  const cards=new Map();
+
+  for(const raw of text.replace(/\r/g,'').split('\n')){
+    let line=raw.replace(/^\uFEFF/,'').trim();
+    if(!line) continue;
+
+    // Headings from ManaBox / copied decklists:
+    // [COMMANDER], [CRÉATURES], [ARTÉFACTS], etc.
+    if(/^\[[^\]]+\]$/u.test(line)) continue;
+
+    // Other common section headings.
+    if(/^(commander|commandant|deck|sideboard|companion|maybeboard|créatures|creatures|artefacts|artifacts|éphémères|ephemeres|instants|rituels|sorceries|enchantements|lands|terrains)$/iu.test(line)) continue;
+
+    // Remove bullets occasionally added by apps.
+    line=line.replace(/^[•\-–—]\s*/,'');
+
+const m=line.match(/^(\d+)\s*[x×]?\s+(.+?)\s*$/u);
+
+const qty=m ? Number(m[1]) : 1;
+let name=m ? m[2] : line;
+
+    // ManaBox / Moxfield / Archidekt collector information.
+    // Examples: "Card Name (ABC) 123", "Card Name [ABC] 123"
+    name=name.replace(/\s+\([A-Za-z0-9]{2,8}\)\s+\d+[A-Za-z]*\s*$/u,'');
+    name=name.replace(/\s+\[[A-Za-z0-9]{2,8}\]\s+\d+[A-Za-z]*\s*$/u,'');
+    name=name.replace(/\s+\([A-Za-z0-9]{2,8}\)\s*$/u,'');
+    name=name.replace(/\s+\[[A-Za-z0-9]{2,8}\]\s*$/u,'');
+
+    name=normalizeCardName(name);
+    if(!name) continue;
+
+    const key=name.toLocaleLowerCase();
+    cards.set(key,{name,qty:(cards.get(key)?.qty||0)+qty});
+  }
+  return [...cards.values()];
+}
+
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function fetchJSON(url, retries=6){
+  let lastError;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const r=await fetch(url,{headers:{'Accept':'application/json'}});
+      if(r.ok) return await r.json();
+
+      // Scryfall can temporarily rate-limit a long deck import.
+      if((r.status===429 || r.status>=500) && attempt<retries){
+        const retryAfter=Number(r.headers.get('Retry-After'));
+        await sleep(Number.isFinite(retryAfter) ? retryAfter*1000 : 1200*(attempt+1));
+        continue;
+      }
+      throw new Error('HTTP '+r.status);
+    }catch(e){
+      lastError=e;
+      if(attempt<retries) await sleep(900*(attempt+1));
+    }
+  }
+  throw lastError||new Error('Request failed');
+}
+
+async function findCard(name){
+  const clean=normalizeCardName(name);
+
+  // 1) Exact canonical name only. Never substitute another card.
+  let exact;
+  try{
+    exact=await fetchJSON('https://api.scryfall.com/cards/named?exact='+encodeURIComponent(clean), 5);
+  }catch(e){
+    // 2) Fuzzy fallback is accepted ONLY if Scryfall returns the same normalized name.
+    const fuzzy=await fetchJSON('https://api.scryfall.com/cards/named?fuzzy='+encodeURIComponent(clean), 5);
+    if(normalizeCardName(fuzzy.name).toLowerCase()!==clean.toLowerCase()){
+      throw new Error('Nom ambigu: '+clean+' → '+fuzzy.name);
+    }
+    exact=fuzzy;
+  }
+
+  // 3) Find a French printing, but verify the returned card name exactly.
+  try{
+    const q=encodeURIComponent('!"'+clean.replace(/"/g,'\\"')+'" lang:fr');
+    const prints=await fetchJSON('https://api.scryfall.com/cards/search?q='+q+'&unique=prints', 5);
+    const fr=prints.data?.find(c=>
+      c.lang==='fr' &&
+      normalizeCardName(c.name).toLowerCase()===clean.toLowerCase()
+    );
+    if(fr) return fr;
+  }catch(e){}
+
+  return exact;
+}
+
+// Récupère toutes les éditions/illustrations disponibles pour une carte (best-effort,
+// utilisé uniquement pour le sélecteur d'illustration — un échec ici n'empêche pas
+// l'analyse principale de fonctionner).
+async function fetchAllPrints(name){
+  const clean=normalizeCardName(name);
+  try{
+    const q=encodeURIComponent('!"'+clean.replace(/"/g,'\\"')+'"');
+    const res=await fetchJSON('https://api.scryfall.com/cards/search?q='+q+'&unique=prints&order=released&dir=desc', 3);
+    const data=(res.data||[]).filter(c=>normalizeCardName(c.name).toLowerCase()===clean.toLowerCase());
+    // Éditions françaises en premier, pour un choix rapide, puis le reste par date.
+    data.sort((a,b)=>(a.lang==='fr'?-1:0)-(b.lang==='fr'?-1:0));
+    return data;
+  }catch(e){
+    return [];
+  }
+}
+
+function image(card,size){
+  return card.image_uris?.[size] ||
+    card.card_faces?.[0]?.image_uris?.[size] ||
+    card.image_uris?.small ||
+    card.card_faces?.[0]?.image_uris?.small || '';
+}
+
+function isBasicLandCard(card){
+  return card.basic === true ||
+    /\bBasic\b/i.test(card.type_line || '') ||
+    /\bde base\b/i.test(card.type_line || '') ||
+    /^(Plains|Island|Swamp|Mountain|Forest|Plaine|Île|Ile|Marais|Montagne|Forêt|Foret)$/i.test(card.name);
+}
+
+function escapeHtml(value){
+  return value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Traite une liste d'items avec au plus `limit` requêtes en vol simultanément.
+// Garde le comportement "poli" vis-à-vis de l'API Scryfall (pas de rafale illimitée)
+// tout en étant bien plus rapide qu'une boucle strictement séquentielle.
+async function runWithConcurrency(items, limit, worker){
+  let cursor=0;
+  const runners=Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(cursor<items.length){
+      const i=cursor++;
+      await worker(items[i], i);
+    }
+  });
+  await Promise.all(runners);
+}
+
+function applyCardToRow(row, idx, card){
+  const item=cardEntries[idx].item;
+  const small=image(card,'small');
+  const high=image(card,'png') || image(card,'large');
+
+  const picEl=row.querySelector('.pic, .card-thumb');
+  if(small){
+    const im=document.createElement('img');
+    im.className='card-thumb';
+    im.src=small; im.alt=item.name; im.loading='lazy';
+    im.addEventListener('click',()=>{ $('modalImage').src=high||small; $('modal').classList.add('show'); });
+    if(picEl) picEl.replaceWith(im); else row.prepend(im);
+  }
+
+  row.querySelector('.meta').textContent=(card.set_name||'Édition inconnue')+' • '+(card.lang||'en').toUpperCase();
+  row.querySelector('.status').textContent=card.lang==='fr'?'✓ FR':'✓ Trouvée';
+
+  cardEntries[idx].card=card;
+  cardEntries[idx].high=high;
+  cardEntries[idx].isBasicLand=isBasicLandCard(card);
+}
+
+function renderPrintPicker(row, idx){
+  const btn=row.querySelector('.edition-btn');
+  const panel=row.querySelector('.print-picker');
+  btn.hidden=false;
+  btn.textContent='🎨 Éditions';
+
+  btn.onclick=async(e)=>{
+    e.stopPropagation();
+    const entry=cardEntries[idx];
+
+    if(panel.classList.contains('open')){
+      panel.classList.remove('open');
+      return;
+    }
+
+    if(entry.prints===null){
+      btn.disabled=true;
+      btn.textContent='…';
+      entry.prints=await fetchAllPrints(entry.item.name);
+      if(!entry.prints.length) entry.prints=[entry.card];
+      btn.disabled=false;
+    }
+
+    if(entry.prints.length<2){
+      btn.textContent='🎨 Seule édition';
+      return;
+    }
+
+    btn.textContent='🎨 '+entry.prints.length+' éditions';
+    panel.innerHTML=entry.prints.map((p,i)=>{
+      const thumb=image(p,'small');
+      if(!thumb) return '';
+      const chosen=p.id===entry.card.id?' chosen':'';
+      return '<img src="'+thumb+'" data-printidx="'+i+'" class="'+chosen.trim()+'" title="'+escapeHtml((p.set_name||'')+' • '+(p.lang||'').toUpperCase())+'">';
+    }).join('');
+    panel.querySelectorAll('img').forEach(img=>{
+      img.addEventListener('click',ev=>{
+        ev.stopPropagation();
+        const p=entry.prints[Number(img.dataset.printidx)];
+        applyCardToRow(row, idx, p);
+        panel.querySelectorAll('img').forEach(i=>i.classList.remove('chosen'));
+        img.classList.add('chosen');
+        panel.classList.remove('open');
+      });
+    });
+    panel.classList.add('open');
+  };
+}
+
+async function analyzeDeck(){
+  const rawText=$('deck').value;
+  isCommanderFormat=/^\s*(commander|commandant)\s*$/im.test(rawText);
+  const cards=parseDeck(rawText);
+  $('results').innerHTML='';
+  $('pdfPrint').innerHTML='';
+  analyzedCards=[];
+  cardEntries=cards.map(item=>({item, card:null, prints:null, high:'', isBasicLand:false}));
+  $('analysisBox').style.display='none'; printCards=[];
+  $('pdf').disabled=true;
+  $('pdfmsg').textContent='';
+
+  if(!cards.length){
+    $('stats').textContent='Aucune carte reconnue.';
+    $('results').innerHTML='<div class="empty">Vérifie le format : 1 Nom de carte.</div>';
+    return;
+  }
+
+  // Une ligne (row) par carte, créée tout de suite dans l'ordre de la decklist,
+  // puis remplie au fur et à mesure que les requêtes reviennent (même en parallèle).
+  const rows=cards.map(item=>{
+    const row=document.createElement('div');
+    row.className='card';
+    row.innerHTML=
+      '<div class="pic"></div>'+
+      '<div class="card-info">'+
+        '<b>'+escapeHtml(item.qty+' × '+item.name)+'</b>'+
+        '<div class="meta">Recherche…</div>'+
+        '<div class="print-picker"></div>'+
+      '</div>'+
+      '<div class="status-col">'+
+        '<div class="status">…</div>'+
+        '<button type="button" class="edition-btn secondary" hidden></button>'+
+      '</div>';
+    $('results').append(row);
+    return row;
+  });
+
+  let found=0,fr=0,bad=0;
+
+  await runWithConcurrency(cards, 1, async(item, idx)=>{
+    const row=rows[idx];
+    try{
+      const card=await findCard(item.name);
+      found++;
+      if(card.lang==='fr') fr++;
+
+      cardEntries[idx].prints=null; // chargées à la demande, voir renderPrintPicker
+      applyCardToRow(row, idx, card);
+      renderPrintPicker(row, idx);
+
+      analyzedCards.push({
+        qty:item.qty,
+        type_line:card.type_line||'',
+        cmc:Number(card.cmc)||0,
+        color_identity:card.color_identity||[],
+        legalities:card.legalities||{}
+      });
+    }catch(e){
+      bad++;
+      row.querySelector('.meta').textContent='Carte non reconnue';
+      row.querySelector('.status').textContent='À vérifier';
+      row.querySelector('.status').style.color='var(--warn)';
+    }
+
+    $('stats').textContent='✓ '+found+' reconnues • 🇫🇷 '+fr+' FR • ⚠ '+bad+' à vérifier';
+  });
+
+  if(analyzedCards.length) renderDeckAnalysis();
+  renderSingletonWarning();
+  if(found>0){
+    $('pdf').disabled=false;
+    $('pdfmsg').textContent='La version imprimée utilise la meilleure image disponible (PNG haute résolution si disponible).';
+  }
+}
+
+function renderSingletonWarning(){
+  const box=$('singletonWarning');
+  if(!isCommanderFormat){ box.innerHTML=''; return; }
+  const offenders=cardEntries.filter(e=>e.card && !e.isBasicLand && e.item.qty>1);
+  if(!offenders.length){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="warning-box"><b>⚠ Format Commander : ' + offenders.length + ' carte(s) en plusieurs exemplaires.</b><br>'+
+    'Le Commander est un format en singleton (1 exemplaire max hors terrains de base) : '+
+    offenders.map(e=>escapeHtml(e.item.qty+'× '+e.item.name)).join(', ')+'.</div>';
+}
+
+function renderDeckAnalysis(){
+const total=analyzedCards.reduce((s,c)=>s+c.qty,0), isLand=c=>/\bLand\b/i.test(c.type_line), lands=analyzedCards.filter(isLand).reduce((s,c)=>s+c.qty,0), nonland=total-lands, avg=nonland?analyzedCards.filter(c=>!isLand(c)).reduce((s,c)=>s+c.cmc*c.qty,0)/nonland:0;
+$('aTotal').textContent=total;$('aLands').textContent=lands;$('aNonland').textContent=nonland;$('aUnique').textContent=analyzedCards.length;$('aAvg').textContent=avg.toFixed(2);
+const order=['W','U','B','R','G'], set=new Set();analyzedCards.forEach(c=>c.color_identity.forEach(x=>set.add(x)));const cols=order.filter(x=>set.has(x));$('aColors').textContent=cols.length?cols.join(''):'◈';$('colorPips').innerHTML=order.map(c=>'<div class="pip '+(set.has(c)?'active':'')+'">'+c+'</div>').join('');
+const types=['Creature','Artifact','Enchantment','Instant','Sorcery','Planeswalker','Battle','Land'];const counts={};types.forEach(t=>counts[t]=0);analyzedCards.forEach(c=>types.forEach(t=>{if(new RegExp('\\b'+t+'\\b','i').test(c.type_line))counts[t]+=c.qty}));$('typeList').innerHTML=types.filter(t=>counts[t]).map(t=>'<div class="type-row"><span>'+t+'</span><b>'+counts[t]+'</b></div>').join('');
+const b=Array(7).fill(0);analyzedCards.filter(c=>!isLand(c)).forEach(c=>b[Math.min(6,Math.floor(c.cmc))]+=c.qty);const max=Math.max(1,...b);$('manaChart').innerHTML=b.map((n,i)=>'<div class="mana-col"><span class="mana-count">'+n+'</span><div class="mana-bar" style="height:'+Math.max(2,Math.round(n/max*115))+'px"></div><span class="mana-num">'+(i===6?'6+':i)+'</span></div>').join('');$('analysisBox').style.display='block';
+
+// Légalité par format (uniquement les cartes non-terrain-de-base reconnues sont considérées).
+const formats=[['commander','Commander'],['standard','Standard'],['modern','Modern'],['pioneer','Pioneer'],['legacy','Legacy'],['pauper','Pauper']];
+const checkable=analyzedCards.filter(c=>c.legalities && Object.keys(c.legalities).length);
+$('legalList').innerHTML=formats.map(([key,label])=>{
+  if(!checkable.length) return '<span class="legal-pill">'+label+' : ?</span>';
+  const allLegal=checkable.every(c=>c.legalities[key]==='legal');
+  return '<span class="legal-pill '+(allLegal?'ok':'no')+'">'+label+(allLegal?' ✓':' —')+'</span>';
+}).join('');
+
+// Estimation de prix (best-effort, à partir des éditions actuellement choisies).
+let priceTotal=0, priceKnown=0, priceMissing=0;
+cardEntries.forEach(e=>{
+  if(!e.card) return;
+  const p=parseFloat(e.card.prices?.eur);
+  if(!isNaN(p)){ priceTotal+=p*e.item.qty; priceKnown+=e.item.qty; }
+  else priceMissing+=e.item.qty;
+});
+$('priceNote').textContent=priceKnown
+  ? 'Estimation : ~'+priceTotal.toFixed(2)+' € (éditions sélectionnées) sur '+priceKnown+' cartes avec prix connu'+(priceMissing?', '+priceMissing+' sans prix disponible.':'.')
+  : 'Prix indisponible pour ces cartes.';
+}
+$('analyze').addEventListener('click',analyzeDeck);
+
+const PAPER={
+  a4:{w:210,h:297,usableWidth:193},
+  letter:{w:215.9,h:279.4,usableWidth:198.9}
+};
+
+function buildPrintLayout(){
+  let gap=Math.max(0,Math.min(3.5,Number($('gap').value)||0));
+  const cropMarks=$('cropMarks').checked;
+  const printBacks=$('printBacks').checked;
+  const paperKey=$('paperFormat').value==='letter'?'letter':'a4';
+  const paper=PAPER[paperKey];
+
+  // Les repères de découpe ont besoin d'un minimum d'espace visible entre les cartes.
+  if(cropMarks && gap<1){ gap=1; $('gap').value='1'; }
+
+  const cardW=(paper.usableWidth-(2*gap))/3;
+  const cardH=cardW*(88/63);
+
+  const container=$('pdfPrint');
+  container.innerHTML='';
+  container.style.setProperty('--page-w',paper.w+'mm');
+  container.style.setProperty('--page-h',paper.h+'mm');
+  container.style.setProperty('--print-gap',gap+'mm');
+  container.style.setProperty('--print-card-w',cardW.toFixed(3)+'mm');
+  container.style.setProperty('--print-card-h',cardH.toFixed(3)+'mm');
+
+  const removeBasics=$('excludeBasics') && $('excludeBasics').checked;
+
+  // Reconstruit la liste à imprimer à partir de l'édition actuellement choisie
+  // pour chaque carte (peut avoir changé depuis l'analyse initiale).
+  printCards=[];
+  cardEntries.forEach(e=>{
+    if(!e.card || !e.high) return;
+    if(removeBasics && e.isBasicLand) return;
+    for(let i=0;i<e.item.qty;i++){
+      printCards.push({image:e.high, name:e.card.name});
+    }
+  });
+
+  // Sans dos de carte : une seule grille continue, le navigateur gère lui-même
+  // la pagination à l'impression (comportement simple et fiable).
+  if(!printBacks){
+    const p=document.createElement('div');
+    p.className='print-page'+(cropMarks?' crop-marks':'');
+    printCards.forEach(card=>{
+      const pc=document.createElement('div');
+      pc.className='print-card';
+      const img=document.createElement('img');
+      img.src=card.image; img.alt=card.name; img.loading='eager';
+      pc.appendChild(img);
+      p.appendChild(pc);
+    });
+    container.appendChild(p);
+    return;
+  }
+
+  // Avec dos de carte : on doit découper nous-mêmes en pages de 3 colonnes pour
+  // savoir exactement quelles cartes tombent sur quelle feuille, et construire
+  // la page de dos correspondante juste après (miroir gauche/droite par ligne).
+  const pageUsableHeight=paper.h-2*8.5;
+  const rowsPerPage=Math.max(1,Math.floor((pageUsableHeight+gap)/(cardH+gap)));
+  const perPage=rowsPerPage*3;
+
+  const pages=[];
+  for(let i=0;i<printCards.length;i+=perPage){
+    pages.push(printCards.slice(i,i+perPage));
+  }
+  if(!pages.length) pages.push([]);
+
+  const buildFrontPage=(cards)=>{
+    const p=document.createElement('div');
+    p.className='print-page'+(cropMarks?' crop-marks':'');
+    cards.forEach(card=>{
+      const pc=document.createElement('div');
+      pc.className='print-card';
+      const img=document.createElement('img');
+      img.src=card.image; img.alt=card.name; img.loading='eager';
+      pc.appendChild(img);
+      p.appendChild(pc);
+    });
+    return p;
+  };
+
+  const buildBackPage=(cards)=>{
+    const p=document.createElement('div');
+    p.className='print-page'+(cropMarks?' crop-marks':'');
+    // Complète la dernière rangée avec des cases invisibles pour garder l'alignement.
+    const padded=cards.slice();
+    while(padded.length%3!==0) padded.push(null);
+    // Miroir gauche/droite par rangée de 3, pour un retournement sur le bord long.
+    for(let r=0;r<padded.length;r+=3){
+      const row=padded.slice(r,r+3).reverse();
+      row.forEach(card=>{
+        const pc=document.createElement('div');
+        pc.className='print-card'+(card?'':' blank');
+        if(card){
+          const back=document.createElement('div');
+          back.className='cardback';
+          back.innerHTML='<div class="cardback-emblem">PROXY</div>';
+          pc.appendChild(back);
+        }
+        p.appendChild(pc);
+      });
+    }
+    return p;
+  };
+
+  pages.forEach(cards=>{
+    container.appendChild(buildFrontPage(cards));
+    container.appendChild(buildBackPage(cards));
+  });
+}
+
+$('pdf').addEventListener('click', async ()=>{
+  if($('pdf').disabled) return;
+
+  buildPrintLayout();
+
+  const images=[...$('pdfPrint').querySelectorAll('img')];
+
+  await Promise.all(
+    images.map(img=>{
+      if(img.complete && img.naturalWidth>0) return Promise.resolve();
+      return new Promise(resolve=>{
+        img.onload=resolve;
+        img.onerror=resolve;
+      });
+    })
+  );
+
+  window.print();
+});
+
+$('clear').addEventListener('click',()=>{
+  $('deck').value='';
+  localStorage.removeItem('mtgforge_decklist');
+  $('results').innerHTML='<div class="empty">Lance l\u2019analyse pour commencer.</div>';
+  $('pdfPrint').innerHTML=''; printCards=[]; analyzedCards=[]; cardEntries=[]; $('analysisBox').style.display='none';
+  $('singletonWarning').innerHTML='';
+  $('stats').textContent='';
+  $('pdf').disabled=true;
+  $('pdfmsg').textContent='';
+});
+$('closeModal').addEventListener('click',e=>{e.stopPropagation();$('modal').classList.remove('show')});
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))$('modal').classList.remove('show')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('modal').classList.remove('show')});
+</script>
+</body>
+</html>
