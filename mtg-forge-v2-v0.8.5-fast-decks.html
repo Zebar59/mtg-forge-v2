@@ -1,0 +1,2231 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MTG Forge</title>
+<style>
+:root{--bg:#070707;--panel:#111;--panel2:#090909;--line:#292929;--orange:#ff6a00;--text:#f5f5f5;--muted:#999;--ok:#69d99a;--warn:#ffb45c;--input-bg:#080808;--card-bg:#090909;--deck-glow-1:#321505;--deck-glow-2:#070707;--deck-glow-3:#070707}
+[data-theme="light"]{--bg:#f4f2ee;--panel:#fff;--panel2:#f7f5f2;--line:#e0ddd6;--orange:#d85400;--text:#181410;--muted:#6b655c;--ok:#1f8f52;--warn:#b5690a;--input-bg:#fff;--card-bg:#fff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 82% 0,var(--deck-glow-1),transparent 42%),radial-gradient(circle at 18% 12%,var(--deck-glow-2),transparent 40%),radial-gradient(circle at 58% 100%,var(--deck-glow-3),transparent 48%),var(--bg);color:var(--text);font-family:system-ui,sans-serif;transition:background 1s ease,color .2s}
+[data-theme="light"] body{background:radial-gradient(circle at 80% 0,#ffe4c7,#f4f2ee 55%)}
+header{padding:18px 5%;border-bottom:1px solid var(--line);font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
+header span{color:var(--orange)}
+.header-actions{display:flex;align-items:center;gap:14px;font-weight:400}
+.icon-btn{padding:8px 10px;margin:0;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--text);cursor:pointer;font-size:15px;line-height:1}
+main{max-width:1100px;margin:auto;padding:45px 20px}
+.hero{text-align:center;color:var(--muted);margin-bottom:35px}
+h1{font-size:clamp(38px,7vw,65px);line-height:1;margin:10px;color:var(--text)}
+h1 span{color:var(--orange)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.cards-box{width:100%;margin-top:18px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+textarea{width:100%;height:280px;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:14px;font:14px monospace}
+button{padding:12px 16px;border-radius:9px;border:0;font-weight:800;margin-top:10px;cursor:pointer;font-family:inherit}
+.primary{background:var(--orange);color:#160900}.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.stats{margin:12px 0;color:var(--ok)}
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{display:flex;align-items:flex-start;gap:12px;background:var(--card-bg);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.card.retryable{cursor:pointer;border-color:var(--warn)}
+.card.retryable:hover{filter:brightness(1.1)}
+.card img,.card .pic{width:82px;height:115px;object-fit:cover;border-radius:6px;flex:0 0 auto;cursor:pointer}
+.card .pic{background:var(--panel2)}
+.card-info{flex:1;min-width:0}
+.card b{display:block;font-size:18px;line-height:1.22;white-space:normal;overflow-wrap:break-word;word-break:normal}
+.meta{font-size:14px;line-height:1.35;color:var(--muted);margin-top:5px;overflow-wrap:break-word;word-break:normal}
+.status-col{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.status{font-size:13px;color:var(--ok);white-space:nowrap}
+.edition-btn{margin:0;padding:5px 8px;font-size:12px;font-weight:600;background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.print-picker{display:none;margin-top:10px;flex-wrap:wrap;gap:6px}
+.print-picker.open{display:flex}
+.print-picker img{width:44px;height:62px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;opacity:.75}
+.print-picker img:hover{opacity:1}
+.print-picker img.chosen{border-color:var(--orange);opacity:1}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.tag.bad{color:#ff6b6b;border-color:#ff6b6b55}
+.note{font-size:12px;color:var(--muted);margin-top:8px}.empty{text-align:center;color:var(--muted);padding:70px 10px}
+.warning-box{margin-top:16px;padding:14px 16px;border-radius:12px;background:#3a1f0333;border:1px solid var(--warn);font-size:13px;color:var(--text)}
+.warning-box b{color:var(--warn)}
+@media(max-width:800px){
+  .grid,.top-grid{grid-template-columns:1fr}
+  .results{grid-template-columns:repeat(2,minmax(0,1fr))}
+  main{padding-top:30px}
+}
+@media(max-width:600px){
+  .results{grid-template-columns:1fr}
+  .card img{width:72px;height:101px}
+  .card b{font-size:16px}
+}
+
+#pdfPrint{display:none}
+.modal{display:none;position:fixed;inset:0;background:#000d;z-index:50;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.modal.show{display:flex}.modal-content{position:relative;cursor:default}
+.modal-content img{display:block;max-width:90vw;max-height:88vh;border-radius:12px;box-shadow:0 20px 80px #000}
+.close{position:absolute;right:-8px;top:-45px;background:#222;color:#fff;border:1px solid #555;border-radius:8px;padding:8px 12px;margin:0;cursor:pointer}
+
+@media print{
+  @page{margin:0}
+  html,body{margin:0;background:#fff}
+  body{color:#000}
+  header,.hero,.inputbox,#pdfbox,#analysisBox,.decklist-section,.accordion{display:none!important}
+  main{max-width:none;padding:0;margin:0}
+  .grid{display:block}
+  .box{border:0;padding:0;background:#fff}
+  #results{display:none!important}
+  #pdfPrint{
+    display:block!important;
+  }
+  .print-page{
+    display:grid!important;
+    box-sizing:border-box;
+    width:var(--page-w,210mm);
+    margin:0;
+    padding:8.5mm;
+    grid-template-columns:repeat(3,var(--print-card-w,63mm));
+    grid-auto-rows:var(--print-card-h,88mm);
+    column-gap:var(--print-gap,2mm);
+    row-gap:var(--print-gap,2mm);
+    align-content:start;
+    page-break-after:always;
+  }
+  .print-page:last-child{page-break-after:auto}
+  .print-card{
+    width:var(--print-card-w,63mm);
+    height:var(--print-card-h,88mm);
+    overflow:hidden;
+    break-inside:avoid;
+    page-break-inside:avoid;
+    background:#fff;
+    position:relative;
+  }
+  .print-card img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:fill;
+    image-rendering:auto;
+  }
+  .print-card.blank{visibility:hidden}
+  .crop-marks .print-card:not(.blank){
+    outline:.15mm dashed #999;
+    outline-offset:calc(var(--print-gap,2mm) / 2.2);
+  }
+  .cardback{
+    width:100%;height:100%;
+    background:
+      radial-gradient(circle at 50% 38%,#2a2340,#0d0b16 70%);
+    border:.6mm solid #ff6a00;
+    border-radius:2.5mm;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cardback-emblem{
+    width:55%;aspect-ratio:1;border:1mm solid #ff6a00;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:#ff6a00;font-weight:900;font-size:5mm;letter-spacing:.5mm;text-align:center;
+    font-family:system-ui,sans-serif;
+  }
+}
+
+.analysis{margin-top:28px}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.statbox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}.statbox b{display:block;font-size:24px;color:var(--orange)}.statbox span{font-size:11px;color:var(--muted)}.type-list{display:grid;gap:7px}.type-row{display:flex;justify-content:space-between;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}.mana-chart{display:flex;align-items:flex-end;gap:6px;height:150px;margin-top:15px;padding:10px 0;border-bottom:1px solid var(--line)}.mana-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.mana-bar{width:100%;max-width:42px;background:var(--orange);border-radius:5px 5px 0 0;min-height:2px}.mana-num,.analysis-note{font-size:11px;color:var(--muted)}.mana-count{font-size:11px;color:var(--text)}.color-pips{display:flex;gap:7px;justify-content:center;margin-top:10px;flex-wrap:wrap}.pip{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:800}.pip.active{border-color:var(--orange);box-shadow:0 0 12px #ff6a0055}
+.legal-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.legal-pill{font-size:11px;padding:5px 9px;border-radius:99px;background:var(--panel2);border:1px solid var(--line)}
+.legal-pill.ok{color:var(--ok);border-color:var(--ok)}
+.legal-pill.no{color:var(--muted);text-decoration:line-through}
+@media(max-width:600px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
+
+.accordion{margin-top:24px;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+.accordion-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:var(--panel2);color:var(--text);border:0;cursor:pointer;text-align:left;font:inherit}
+.accordion-toggle:hover{filter:brightness(1.15)}
+.accordion-toggle .chev{font-size:20px;color:var(--orange);transition:transform .2s ease}
+.accordion.open .chev{transform:rotate(180deg)}
+.accordion-body{display:none;padding:0 16px 18px;border-top:1px solid var(--line)}
+.accordion.open .accordion-body{display:block}
+.accordion-title{font-weight:800}
+.accordion-sub{font-size:12px;color:var(--muted);margin-top:3px}
+
+.decklist-section{width:100%;margin-top:28px}
+.decklist-heading{margin:0 0 14px}
+
+@media screen{
+  .decklist-section{width:100%}
+  #results{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:14px !important;
+    width:100% !important;
+  }
+  #results > *{
+    min-width:0 !important;
+    width:auto !important;
+    margin:0 !important;
+  }
+}
+
+@media screen and (max-width:900px){
+  #results{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}
+@media screen and (max-width:600px){
+  #results{grid-template-columns:1fr !important}
+}
+
+.top-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:28px;
+  align-items:stretch;
+  width:100%;
+  margin-bottom:32px;
+}
+.top-grid > .inputbox,
+.top-grid > .analysis{
+  box-sizing:border-box;
+  height:100%;
+  margin-top:0 !important;
+}
+
+.dropzone{border:1px dashed var(--line);border-radius:10px;padding:8px 10px;font-size:11px;color:var(--muted);margin-top:8px;text-align:center}
+.dropzone.drag{border-color:var(--orange);color:var(--orange)}
+
+.progress-box{margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.progress-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:var(--muted)}
+.progress-track{height:8px;overflow:hidden;border-radius:999px;background:var(--line)}
+.progress-fill{width:0%;height:100%;border-radius:999px;background:var(--orange);transition:width .25s ease}
+
+.print-options{display:flex;flex-direction:column;gap:10px}
+.opt-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:13px}
+.opt-row label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+select,.numinput{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px}
+
+/* ===== V0.8.2 APP NAVIGATION ===== */
+.app-header{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px)}
+.brand{margin:0;padding:0;background:transparent;border:0;color:var(--text);font-size:24px;font-weight:900;cursor:pointer}
+.brand span{color:var(--orange)}
+.main-nav{display:flex;align-items:center;gap:6px;margin-left:auto;margin-right:18px}
+.nav-btn{margin:0;padding:9px 12px;background:transparent;border:1px solid transparent;color:var(--muted);font-size:13px}
+.nav-btn:hover{background:var(--panel2);color:var(--text)}
+.nav-btn.active{background:var(--panel2);border-color:var(--line);color:var(--text)}
+.account-popover{position:fixed;z-index:40;top:72px;right:5%;width:min(420px,calc(100vw - 32px))}
+.auth-panel{margin:0;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 24px 80px #0008}
+.account-title{font-size:18px;font-weight:900;margin-bottom:12px}
+.account-email{font-weight:800;font-size:14px;word-break:break-word}
+.auth-row{display:grid;grid-template-columns:1fr;gap:8px}
+.auth-row input{width:100%;min-width:0}
+.auth-actions{display:flex;gap:8px;flex-wrap:wrap}
+.auth-actions button{margin-top:10px}
+.page{display:none;min-height:calc(100vh - 73px)}
+.page.active{display:block}
+.page-shell{max-width:1180px;margin:0 auto;padding:52px 20px}
+.page-hero.compact{text-align:left;max-width:720px;margin-bottom:34px}
+.page-hero h1{margin-left:0}
+.eyebrow{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--orange);margin-bottom:10px}
+.decks-toolbar{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:14px}
+.decks-toolbar h2,.save-deck-panel h2,.collection-card h2,.collection-roadmap h2{margin:0 0 6px}
+.deck-gallery{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));max-height:none;overflow:visible}
+.saved-deck{min-height:118px;align-items:stretch;flex-direction:column;padding:16px;border-radius:14px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.saved-deck:hover{transform:translateY(-2px);border-color:var(--orange);box-shadow:0 14px 32px #0003}
+.saved-deck-info{flex:1}
+.saved-deck-info b{font-size:17px}
+.saved-deck-actions{justify-content:flex-end;margin-top:auto}
+.saved-deck-actions button{margin:0}
+.save-deck-panel{margin-top:28px;padding:22px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,var(--panel),var(--panel2))}
+.collection-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:16px}
+.collection-card{padding:26px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.collection-card.featured{background:linear-gradient(135deg,var(--panel),color-mix(in srgb,var(--orange) 10%,var(--panel2)))}
+.collection-card p{color:var(--muted);line-height:1.5}
+.collection-card button{margin-top:10px}
+.collection-icon{font-size:34px;margin-bottom:18px}
+.collection-number{display:block;font-size:42px;color:var(--orange);margin:18px 0 6px}
+.collection-roadmap{margin-top:26px;padding:26px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.roadmap-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.roadmap-steps>div{padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.roadmap-steps span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--orange);color:#160900;font-weight:900;margin-bottom:12px}
+.roadmap-steps b,.roadmap-steps small{display:block}
+.roadmap-steps small{margin-top:4px;color:var(--muted)}
+
+/* ===== V0.8.2 — COLLECTION + COMPARAISON DES DECKS ===== */
+.collection-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.collection-stat{padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}
+.collection-stat span{display:block;font-size:25px;margin-bottom:10px}
+.collection-stat b{display:block;font-size:32px;color:var(--orange)}
+.collection-stat small{color:var(--muted)}
+.collection-import{margin-bottom:24px}
+.collection-import h2,.collection-list-head h2{margin:0 0 6px}
+.collection-import textarea{width:100%;min-height:160px;height:160px;margin-top:18px}
+.collection-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.collection-actions button,.file-btn{margin:0}
+.file-btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);cursor:pointer;font-weight:800}
+.file-btn input{display:none}
+.collection-list-box{margin-top:0}
+.collection-list-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:15px}
+.collection-list-head button{margin:0}
+.collection-list{max-height:760px;overflow:auto}
+.collection-row{display:grid;grid-template-columns:58px minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:10px;border-bottom:1px solid var(--line)}
+.collection-row:last-child{border-bottom:0}
+.collection-row:hover{background:var(--panel2)}
+.collection-thumb{width:42px;height:58px;border-radius:7px;border:1px solid var(--line);display:grid;place-items:center;background:var(--panel2);font-size:22px}
+.collection-card-name{font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.collection-card-name small{display:block;margin-top:4px;color:var(--muted);font-weight:400;font-size:11px}
+.collection-qty{display:flex;align-items:center;gap:6px}
+.collection-qty button{margin:0;width:28px;height:28px;padding:0;border-radius:7px}
+.collection-qty b{min-width:30px;text-align:center}
+.collection-delete{margin:0;padding:7px 10px;background:transparent;border:1px solid var(--line);color:var(--muted)}
+.collection-delete:hover{color:#ff6b6b;border-color:#ff6b6b}
+
+/* Détail d'un deck */
+.deck-detail{margin-top:28px;padding:24px}
+.deck-detail[hidden]{display:none!important}
+.deck-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px}
+.deck-detail-head h2{margin:0;font-size:30px}
+.deck-detail-stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.deck-mini-stat{padding:7px 11px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:12px}
+.deck-mini-stat.missing{color:#ff8a65;border-color:#b8473f}
+.deck-columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;align-items:start}
+.deck-section{margin-bottom:28px}
+.deck-section-title{display:flex;align-items:center;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:4px;font-weight:900}
+.deck-section-title small{color:var(--muted)}
+.deck-card-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px 7px;border-bottom:1px solid var(--line);position:relative}
+.deck-card-row:hover{background:var(--panel2)}
+.deck-card-row.missing{background:linear-gradient(90deg,rgba(255,90,70,.16),transparent);border-left:3px solid #ff6b6b}
+.deck-card-row.partial{background:linear-gradient(90deg,rgba(255,180,92,.14),transparent);border-left:3px solid #ffb45c}
+.deck-card-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deck-card-owned{font-size:11px;color:var(--muted);white-space:nowrap;text-align:right}
+.deck-card-row.missing .deck-card-owned{color:#ff8a65}
+.deck-buy{display:none;margin:0 0 0 6px;padding:4px 7px;border-radius:6px;font-size:10px;background:var(--orange);color:#160900;text-decoration:none;font-weight:900}
+.deck-card-row.missing:hover .deck-buy,.deck-card-row.partial:hover .deck-buy{display:inline-block}
+.saved-deck.selected{border-color:var(--orange)!important;box-shadow:0 0 0 1px var(--orange),0 14px 32px #0004}
+/* Import de deck depuis la page Mes decks */
+.deck-import-panel{margin-top:24px;padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel2)}
+.deck-import-panel h3{margin:0 0 5px}
+.deck-import-row{display:grid;grid-template-columns:minmax(180px,280px) 1fr auto;gap:10px;align-items:start;margin-top:14px}
+.deck-import-row input[type=text],.deck-import-row textarea{width:100%;margin:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}
+.deck-import-row textarea{min-height:145px;resize:vertical;grid-column:1/-1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.deck-import-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.deck-import-file{display:none}
+.deck-import-dropzone{border:1px dashed #555;border-radius:12px;padding:12px 14px;color:var(--muted);text-align:center;cursor:pointer;transition:.2s;background:var(--input-bg);min-height:48px;display:grid;place-items:center}
+.deck-import-dropzone:hover,.deck-import-dropzone.drag{border-color:var(--orange);color:var(--text);background:rgba(255,106,0,.07)}
+.deck-import-status{margin-top:10px;min-height:18px}
+@media(max-width:900px){.deck-import-row{grid-template-columns:1fr}.deck-import-row textarea{grid-column:auto}}
+
+
+
+/* ===== Collection enrichie ===== */
+.collection-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.collection-summary{margin-top:18px;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.collection-summary-block b{display:block;margin-bottom:9px}
+.collection-summary-note{grid-column:1/-1;color:var(--muted);font-size:12px}
+.summary-pills{display:flex;gap:7px;flex-wrap:wrap}
+.summary-pill{padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);font-size:11px}
+.collection-filters{display:grid;grid-template-columns:minmax(180px,1.5fr) repeat(4,minmax(120px,1fr));gap:9px;margin:16px 0 12px}
+.collection-filters input,.collection-filters select{width:100%;margin:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}
+.collection-list.collection-columns{max-height:none;overflow:visible;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;align-items:start}
+.collection-column{min-width:0}
+.collection-section{margin-bottom:26px}
+.collection-section-title{display:flex;align-items:center;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);font-weight:900}
+.collection-section-title small{color:var(--muted)}
+.collection-row{grid-template-columns:44px minmax(0,1fr) auto;gap:9px;padding:8px 6px;cursor:pointer;border-bottom:1px solid var(--line)}
+.collection-row:hover{background:var(--panel2)}
+.collection-thumb{width:38px;height:52px;overflow:hidden}
+.collection-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.collection-card-name{font-size:13px}
+.collection-card-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.collection-card-meta{font-size:10px;color:var(--muted);margin-top:3px}
+.collection-row .collection-qty{gap:4px}
+.collection-row .collection-qty button{display:none}
+.collection-row:hover .collection-qty button{display:block}
+.collection-price{font-size:10px;color:var(--ok);white-space:nowrap}
+.collection-actions-inline{display:none;position:absolute;right:8px;bottom:4px}
+.collection-row{position:relative}
+.collection-row:hover .collection-actions-inline{display:flex;gap:4px}
+.collection-actions-inline button{margin:0;padding:3px 6px;font-size:10px;border-radius:6px}
+.deck-card-row.has-image{grid-template-columns:38px 30px minmax(0,1fr) auto;cursor:pointer}
+.deck-card-thumb{width:30px;height:42px;border-radius:4px;object-fit:cover;border:1px solid var(--line);grid-row:1}
+@media(max-width:1050px){
+  .collection-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .collection-list.collection-columns{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .collection-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+  .collection-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .collection-summary{grid-template-columns:1fr}
+  .collection-list.collection-columns{grid-template-columns:1fr}
+  .collection-filters{grid-template-columns:1fr}
+}
+@media(max-width:850px){
+  .app-header{padding:12px 16px;gap:10px}
+  .main-nav{order:3;width:100%;margin:0;overflow:auto}
+  .header-actions{margin-left:auto}
+  .page-shell{padding-top:34px}
+  .collection-grid,.collection-stats{grid-template-columns:1fr}
+  .roadmap-steps{grid-template-columns:1fr}
+  .decks-toolbar{align-items:start;flex-direction:column}
+  .deck-columns{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .brand{font-size:20px}
+  .nav-btn{font-size:12px;padding:8px 10px;white-space:nowrap}
+  .header-actions small{display:none}
+  .deck-columns{grid-template-columns:1fr}
+  .deck-detail-head{flex-direction:column}
+  .deck-detail-stats{justify-content:flex-start}
+  .collection-row{grid-template-columns:50px minmax(0,1fr) auto}
+  .collection-delete{display:none}
+}
+
+
+
+/* ===== COLLECTION — GRANDES CARTES RECTANGULAIRES ===== */
+.collection-list.collection-columns{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(300px,1fr));
+  gap:18px;
+  align-items:start;
+}
+.collection-column{min-width:0;width:100%}
+.collection-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  min-height:78px;
+  width:100%;
+  margin:0 0 10px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:linear-gradient(90deg,var(--panel),var(--panel2));
+  cursor:pointer;
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.collection-row:hover{
+  transform:translateY(-2px);
+  border-color:var(--orange);
+  background:linear-gradient(90deg,var(--panel2),color-mix(in srgb,var(--orange) 7%,var(--panel2)));
+  box-shadow:0 10px 24px #0003;
+}
+.collection-thumb{display:none!important}
+.collection-card-name{
+  min-width:0;
+  overflow:visible;
+  text-overflow:clip;
+  white-space:normal;
+  font-size:16px;
+  line-height:1.3;
+  font-weight:850;
+}
+.collection-card-name span{
+  display:block;
+  overflow:visible;
+  text-overflow:clip;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.collection-card-name small.collection-price,
+.collection-card-meta{
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:500;
+}
+.collection-row .collection-qty{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+.collection-row .collection-qty b{
+  min-width:42px;
+  padding:7px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--panel);
+  color:var(--text);
+  text-align:center;
+  font-size:14px;
+}
+.collection-row .collection-qty button{display:none!important}
+.collection-price{font-size:11px;color:var(--ok);white-space:nowrap}
+.collection-actions-inline{display:none!important}
+
+@media(max-width:1100px){
+  .collection-list.collection-columns{grid-template-columns:repeat(2,minmax(280px,1fr));}
+}
+@media(max-width:700px){
+  .collection-list.collection-columns{grid-template-columns:1fr;}
+  .collection-row{min-height:68px;padding:12px 14px}
+  .collection-card-name{font-size:15px}
+}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="app-header">
+  <button class="brand" type="button" data-page="analyzer" aria-label="Accueil MTG Forge">
+    ⚒ <span>MTG</span> FORGE
+  </button>
+
+  <nav class="main-nav" aria-label="Navigation principale">
+    <button class="nav-btn active" type="button" data-page="analyzer">⚒ Forge</button>
+    <button class="nav-btn" type="button" data-page="decks">📚 Mes decks</button>
+    <button class="nav-btn" type="button" data-page="collection">🗃️ Collection</button>
+  </nav>
+
+  <div class="header-actions">
+    <button class="icon-btn" id="accountToggle" type="button" title="Mon compte">👤</button>
+    <button class="icon-btn" id="themeToggle" title="Changer de thème">🌙</button>
+    <small style="color:var(--muted);font-size:12px">V0.8.1</small>
+  </div>
+</header>
+
+<div class="account-popover" id="accountPopover" hidden>
+  <section class="auth-panel" id="authPanel">
+    <div id="authLoggedOut">
+      <div class="account-title">👤 Mon compte</div>
+      <div class="auth-row">
+        <input id="authEmail" type="email" placeholder="Adresse e-mail">
+        <input id="authPassword" type="password" placeholder="Mot de passe">
+      </div>
+      <div class="auth-actions">
+        <button class="primary" id="signIn" type="button">Connexion</button>
+        <button class="secondary" id="signUp" type="button">Créer un compte</button>
+      </div>
+      <div class="auth-status" id="authStatus">Connecte-toi pour sauvegarder tes decks et les retrouver partout.</div>
+    </div>
+
+    <div id="authLoggedIn" hidden>
+      <div class="account-title">👤 Mon compte</div>
+      <div class="account-email" id="accountEmail"></div>
+      <div class="auth-status">Tes données sont sauvegardées dans ton compte MTG Forge.</div>
+      <div class="auth-actions">
+        <button class="secondary" id="signOut" type="button">Déconnexion</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<main class="page active" id="page-analyzer">
+<section class="hero">
+<div>🇫🇷 L'atelier français du proxy</div>
+<h1>Prépare ton deck.<br><span>Imprime-le.</span></h1>
+<p>Images haute résolution et mise en page A4/Letter optimisée pour l'impression.</p>
+</section>
+
+<div class="top-grid">
+<div class="box inputbox">
+<h2>📋 Ma decklist</h2>
+<textarea id="deck">Commander
+1 The Great Goblin
+
+Deck
+1 Sol Ring
+1 Lightning Bolt
+1 Kiki-Jiki, Mirror Breaker
+1 Krenko, Mob Boss
+1 Skullclamp
+2 Mountain
+2 Swamp</textarea>
+<div class="dropzone" id="dropzone">Glisse un fichier .txt ici pour l'importer</div>
+<br>
+<button class="primary" id="analyze">⚒ Analyser mon deck</button>
+<button class="secondary" id="clear">Effacer</button>
+<div id="progressBox" class="progress-box" hidden>
+  <div class="progress-head">
+    <span id="progressText">Analyse du deck…</span>
+    <span id="progressCount">0 / 0</span>
+  </div>
+  <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+</div>
+<div class="note">Format : 1 Nom de carte. Commander / Deck facultatifs. Ta liste est sauvegardée automatiquement dans ce navigateur.</div>
+</div>
+
+<section class="analysis box" id="analysisBox" style="display:none">
+<h2>📊 Analyse du deck</h2>
+<div class="summary-grid">
+<div class="statbox"><b id="aTotal">0</b><span>Cartes</span></div><div class="statbox"><b id="aLands">0</b><span>Terrains</span></div><div class="statbox"><b id="aAvg">0</b><span>Coût moyen</span></div>
+<div class="statbox"><b id="aColors">—</b><span>Couleurs</span></div><div class="statbox"><b id="aNonland">0</b><span>Non-terrains</span></div><div class="statbox"><b id="aUnique">0</b><span>Cartes différentes</span></div>
+</div>
+<div class="grid" style="margin-top:18px"><div class="box" style="padding:14px"><h3>🃏 Types de cartes</h3><div class="type-list" id="typeList"></div></div><div class="box" style="padding:14px"><h3>🌈 Identité couleur</h3><div class="color-pips" id="colorPips"></div><div class="analysis-note">Basé sur les cartes reconnues.</div></div></div>
+<div class="box" style="padding:16px;margin-top:18px"><h3>📈 Courbe de mana</h3><div class="mana-chart" id="manaChart"></div><div class="analysis-note">Les terrains ne sont pas comptés.</div></div>
+<div class="box" style="padding:16px;margin-top:18px"><h3>⚖️ Légalité &amp; prix</h3><div class="legal-list" id="legalList"></div><div class="analysis-note" id="priceNote" style="margin-top:10px"></div></div>
+<div id="singletonWarning"></div>
+</section>
+
+</div>
+
+<div class="box cards-box" id="pdfbox">
+
+<h2>🔎 Résultat</h2>
+<div id="stats" class="stats"></div>
+<div id="results"><div class="empty">Lance l'analyse pour commencer.</div></div>
+<div class="actions">
+<div class="print-options">
+  <div class="opt-row">
+    <label for="gap">↔️ Écart entre les cartes</label>
+    <input id="gap" class="numinput" type="number" min="0" max="3.5" step="0.5" value="2" style="width:65px">
+    <span style="font-size:12px;color:var(--muted)">mm</span>
+  </div>
+  <div class="opt-row">
+    <label for="paperFormat">📄 Format papier</label>
+    <select id="paperFormat" class="numinput">
+      <option value="a4">A4</option>
+      <option value="letter">US Letter</option>
+    </select>
+  </div>
+  <div class="opt-row">
+    <label><input type="checkbox" id="excludeBasics"> Retirer les terrains de base du PDF (pas besoin de les imprimer)</label>
+  </div>
+  <div class="opt-row">
+    <label><input type="checkbox" id="printBacks"> Imprimer aussi les dos de carte (recto-verso)</label>
+  </div>
+  <div class="opt-row">
+    <label><input type="checkbox" id="cropMarks" checked> Repères de découpe</label>
+  </div>
+  <div class="note">2 mm conseillé pour l'écart • le recto-verso suppose une impression avec retournement sur le bord long (à tester une fois avant un gros tirage).</div>
+</div>
+<button class="primary" id="pdf" disabled>🖨️ Préparer le PDF</button>
+</div>
+<div id="pdfmsg" class="note"></div>
+</div>
+
+<div id="pdfPrint"></div>
+</main>
+
+<section class="page" id="page-decks">
+  <div class="page-shell">
+    <div class="page-hero compact">
+      <div class="eyebrow">📚 TON ATELIER</div>
+      <h1>Mes <span>decks.</span></h1>
+      <p>Ouvre un deck pour visualiser sa composition et voir immédiatement ce qu'il te manque.</p>
+    </div>
+
+    <div class="decks-toolbar">
+      <div>
+        <h2>Decks sauvegardés</h2>
+        <div class="note">Clique sur un deck pour afficher sa composition.</div>
+      </div>
+      <button class="secondary" id="refreshDecks" type="button">↻ Actualiser</button>
+    </div>
+
+    <div class="deck-list deck-gallery" id="deckList">
+      <div class="empty">Connecte-toi pour voir tes decks.</div>
+    </div>
+
+    <div class="deck-import-panel">
+      <h3>📥 Importer un deck</h3>
+      <div class="note">Colle ta decklist ci-dessous ou dépose directement un fichier <b>.txt</b>. Le deck sera ajouté à tes decks sauvegardés.</div>
+      <div class="deck-import-row">
+        <input id="importDeckName" type="text" maxlength="100" placeholder="Nom du deck (ex. The Great Goblin Duel)">
+        <div class="deck-import-actions">
+          <label class="deck-import-dropzone" id="deckImportDropzone" for="deckImportFile">📄 Choisir un fichier .txt ou glisser-déposer ici</label>
+          <input class="deck-import-file" id="deckImportFile" type="file" accept=".txt,text/plain">
+          <button class="primary" id="importDeck" type="button">📥 Importer le deck</button>
+        </div>
+        <textarea id="importDeckList" placeholder="Commander
+1 The Great Goblin
+
+Deck
+1 Sol Ring
+1 Lightning Bolt
+..."></textarea>
+      </div>
+      <div class="note deck-import-status" id="deckImportStatus"></div>
+    </div>
+
+    <section class="deck-detail box" id="deckDetail" hidden>
+      <div class="empty">Sélectionne un deck pour afficher son contenu.</div>
+    </section>
+
+    <div class="save-deck-panel">
+      <div>
+        <h2>💾 Sauvegarder le deck actuel</h2>
+        <div class="note">Le deck actuellement chargé dans la Forge sera enregistré dans ton compte.</div>
+      </div>
+      <div class="save-row">
+        <input id="deckName" type="text" maxlength="100" placeholder="Nom du deck">
+        <button class="primary" id="saveDeck" type="button">Sauvegarder</button>
+      </div>
+      <div class="auth-status" id="deckStatus"></div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="page-collection">
+  <div class="page-shell">
+    <div class="page-hero compact">
+      <div class="eyebrow">🗃️ TON INVENTAIRE</div>
+      <h1>Ma <span>collection.</span></h1>
+      <p>Importe tes cartes et compare automatiquement ta collection avec tes decks.</p>
+    </div>
+
+    <div class="collection-stats">
+      <div class="collection-stat"><span>🃏</span><b id="collectionTotal">0</b><small>Cartes possédées</small></div>
+      <div class="collection-stat"><span>📚</span><b id="collectionUnique">0</b><small>Cartes différentes</small></div>
+      <div class="collection-stat"><span>💶</span><b id="collectionValue">—</b><small>Valeur estimée</small></div>
+      <div class="collection-stat"><span>✨</span><b id="collectionAvgMana">—</b><small>Coût de mana moyen</small></div>
+      <div class="collection-stat"><span>⚠️</span><b id="collectionMissing">—</b><small>Manquantes dans le deck ouvert</small></div>
+    </div>
+    <div class="collection-summary box" id="collectionSummary">
+      <div class="collection-summary-block"><b>Couleurs</b><div id="collectionColors" class="summary-pills">—</div></div>
+      <div class="collection-summary-block"><b>Types</b><div id="collectionTypes" class="summary-pills">—</div></div>
+      <div class="collection-summary-note" id="collectionPriceNote">Les prix sont estimés à partir des données disponibles sur Scryfall.</div>
+    </div>
+
+    <div class="collection-import box">
+      <h2>📥 Importer ma collection</h2>
+      <p class="note">Colle une liste ou importe un fichier texte. Exemple : <b>4 Sol Ring</b> ou simplement <b>Sol Ring</b>.</p>
+      <textarea id="collectionInput" placeholder="4 Sol Ring
+1 Lightning Bolt
+2 Skullclamp"></textarea>
+      <div class="collection-actions">
+        <button class="primary" id="importCollection" type="button">📥 Importer dans ma collection</button>
+        <label class="file-btn">📄 Choisir un fichier<input type="file" id="collectionFile" accept=".txt"></label>
+      </div>
+      <div class="auth-status" id="collectionStatus"></div>
+    </div>
+
+    <div class="collection-list-box box">
+      <div class="collection-list-head">
+        <div>
+          <h2>🃏 Mes cartes</h2>
+          <div class="note">Clique sur une carte pour l'agrandir. Utilise les filtres pour explorer ta collection.</div>
+        </div>
+        <button class="secondary small-btn" id="refreshCollection" type="button">↻ Actualiser</button>
+      </div>
+      <div class="collection-filters">
+        <input id="collectionSearch" type="search" placeholder="🔎 Rechercher une carte ou un texte Oracle">
+        <select id="collectionColor"><option value="">Toutes les couleurs</option><option value="W">Blanc</option><option value="U">Bleu</option><option value="B">Noir</option><option value="R">Rouge</option><option value="G">Vert</option><option value="C">Incolore</option></select>
+        <select id="collectionType"><option value="">Tous les types</option><option value="Creature">Créature</option><option value="Instant">Éphémère</option><option value="Sorcery">Rituel</option><option value="Artifact">Artefact</option><option value="Enchantment">Enchantement</option><option value="Planeswalker">Planeswalker</option><option value="Battle">Bataille</option><option value="Land">Terrain</option></select>
+        <select id="collectionMana"><option value="">Tous les coûts</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6+</option></select>
+        <select id="collectionSort"><option value="name">Trier : nom</option><option value="type">Trier : type</option><option value="color">Trier : couleur</option><option value="mana">Trier : coût de mana</option><option value="priceDesc">Trier : prix ↓</option><option value="priceAsc">Trier : prix ↑</option></select>
+      </div>
+      <div id="collectionList" class="collection-list collection-columns">
+        <div class="empty">Connecte-toi pour voir ta collection.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <button class="close" id="closeModal">✕</button>
+    <img id="modalImage" alt="Aperçu de la carte">
+  </div>
+</div>
+<script>
+const SUPABASE_URL='https://yoqifihfjhkldldukpmi.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_HUTfyxtlfyhu2l6puhUHzQ_I13AENJD';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let currentUser=null;
+let collectionCards=[];
+let openedDeck=null;
+let deckCardCache=new Map();
+
+function setAuthMessage(message,isError=false){
+  const el=document.getElementById('authStatus');
+  if(!el) return;
+  el.textContent=message||'';
+  el.style.color=isError?'var(--warn)':'';
+}
+
+function setDeckMessage(message,isError=false){
+  const el=document.getElementById('deckStatus');
+  if(!el) return;
+  el.textContent=message||'';
+  el.style.color=isError?'var(--warn)':'';
+}
+
+function escapeDeckName(name){
+  return String(name).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function setAuthUI(user){
+  currentUser=user||null;
+  document.getElementById('authLoggedOut').hidden=!!currentUser;
+  document.getElementById('authLoggedIn').hidden=!currentUser;
+
+  const accountBtn=document.getElementById('accountToggle');
+  if(currentUser){
+    document.getElementById('accountEmail').textContent=currentUser.email||'Compte connecté';
+    if(accountBtn) accountBtn.textContent='👤';
+    loadSavedDecks();
+    loadCollection();
+  }else{
+    const list=document.getElementById('deckList');
+    if(list) list.innerHTML='<div class="empty">Connecte-toi pour voir tes decks.</div>';
+    if(accountBtn) accountBtn.textContent='👤';
+    setDeckMessage('');
+    collectionCards=[];
+    openedDeck=null;
+    const collectionList=document.getElementById('collectionList');
+    if(collectionList) collectionList.innerHTML='<div class="empty">Connecte-toi pour voir ta collection.</div>';
+    const detail=document.getElementById('deckDetail');
+    if(detail) detail.hidden=true;
+  }
+}
+
+async function signUp(){
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+
+  if(!email || !password){
+    setAuthMessage('Indique une adresse e-mail et un mot de passe.',true);
+    return;
+  }
+
+  setAuthMessage('Création du compte…');
+
+  const {data,error}=await supabaseClient.auth.signUp({
+    email,
+    password,
+    options:{emailRedirectTo:window.location.origin}
+  });
+
+  if(error){
+    setAuthMessage(error.message,true);
+    return;
+  }
+
+  if(data.session){
+    setAuthMessage('Compte créé et connexion réussie.');
+  }else{
+    setAuthMessage('Compte créé. Vérifie ton e-mail pour confirmer ton inscription.');
+  }
+}
+
+async function signIn(){
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+
+  if(!email || !password){
+    setAuthMessage('Indique ton adresse e-mail et ton mot de passe.',true);
+    return;
+  }
+
+  setAuthMessage('Connexion…');
+
+  const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+
+  if(error){
+    setAuthMessage(error.message,true);
+    return;
+  }
+
+  setAuthMessage('Connexion réussie.');
+}
+
+async function signOutUser(){
+  await supabaseClient.auth.signOut();
+  setAuthMessage('Tu es déconnecté.');
+}
+
+async function saveCurrentDeck(){
+  if(!currentUser){
+    setDeckMessage('Connecte-toi pour sauvegarder un deck.',true);
+    return;
+  }
+
+  const name=document.getElementById('deckName').value.trim();
+  const decklist=document.getElementById('deck').value.trim();
+
+  if(!name){
+    setDeckMessage('Donne un nom à ton deck.',true);
+    return;
+  }
+
+  if(!decklist){
+    setDeckMessage('La decklist est vide.',true);
+    return;
+  }
+
+  setDeckMessage('Sauvegarde…');
+
+  const {error}=await supabaseClient
+    .from('decks')
+    .insert({
+      user_id:currentUser.id,
+      name,
+      decklist
+    });
+
+  if(error){
+    setDeckMessage('Erreur : '+error.message,true);
+    return;
+  }
+
+  setDeckMessage('✓ Deck sauvegardé.');
+  document.getElementById('deckName').value='';
+  await loadSavedDecks();
+}
+
+function setDeckImportMessage(message,isError=false){
+  const el=document.getElementById('deckImportStatus');
+  if(!el) return;
+  el.textContent=message||'';
+  el.style.color=isError?'var(--warn)':'';
+}
+
+function getDeckNameFromFile(file){
+  return String(file?.name||'').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+}
+
+function loadDeckImportFile(file){
+  if(!file) return;
+  if(!/\.txt$/i.test(file.name)){
+    setDeckImportMessage('Seuls les fichiers .txt sont acceptés pour le moment.',true);
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=()=>{
+    document.getElementById('importDeckList').value=String(reader.result||'');
+    const nameInput=document.getElementById('importDeckName');
+    if(!nameInput.value.trim()) nameInput.value=getDeckNameFromFile(file);
+    setDeckImportMessage('✓ Decklist chargée. Vérifie le nom puis clique sur « Importer le deck ».');
+  };
+  reader.onerror=()=>setDeckImportMessage('Impossible de lire ce fichier.',true);
+  reader.readAsText(file,'utf-8');
+}
+
+async function importDeckText(){
+  if(!currentUser){
+    setDeckImportMessage('Connecte-toi pour importer un deck.',true);
+    return;
+  }
+  const name=document.getElementById('importDeckName').value.trim();
+  const decklist=document.getElementById('importDeckList').value.trim();
+  if(!name){
+    setDeckImportMessage('Donne un nom au deck.',true);
+    document.getElementById('importDeckName').focus();
+    return;
+  }
+  if(!decklist){
+    setDeckImportMessage('La decklist est vide.',true);
+    document.getElementById('importDeckList').focus();
+    return;
+  }
+  const cards=parseDeck(decklist);
+  if(!cards.length){
+    setDeckImportMessage('Aucune carte détectée. Vérifie le format de la decklist.',true);
+    return;
+  }
+  setDeckImportMessage('Importation de '+cards.reduce((n,c)=>n+c.qty,0)+' cartes…');
+  const {error}=await supabaseClient.from('decks').insert({user_id:currentUser.id,name,decklist});
+  if(error){
+    setDeckImportMessage('Erreur : '+error.message,true);
+    return;
+  }
+  document.getElementById('importDeckName').value='';
+  document.getElementById('importDeckList').value='';
+  setDeckImportMessage('✓ Deck importé et sauvegardé.');
+  await loadSavedDecks();
+}
+
+async function loadSavedDecks(){
+  if(!currentUser) return;
+
+  const list=document.getElementById('deckList');
+  list.innerHTML='<div class="empty">Chargement…</div>';
+
+  const {data,error}=await supabaseClient
+    .from('decks')
+    .select('id,name,decklist,created_at,updated_at')
+    .order('updated_at',{ascending:false});
+
+  if(error){
+    list.innerHTML='<div class="empty">Impossible de charger tes decks.</div>';
+    setDeckMessage('Erreur : '+error.message,true);
+    return;
+  }
+
+  if(!data?.length){
+    list.innerHTML='<div class="empty">Aucun deck sauvegardé pour le moment.</div>';
+    return;
+  }
+
+  list.innerHTML=data.map(deck=>{
+    const date=deck.updated_at ? new Date(deck.updated_at).toLocaleDateString('fr-FR') : '';
+    const selected=openedDeck?.id===deck.id?' selected':'';
+    return '<div class="saved-deck'+selected+'" data-id="'+deck.id+'">'+
+      '<div class="saved-deck-info" data-load="'+deck.id+'">'+
+        '<b>'+escapeDeckName(deck.name)+'</b>'+
+        '<span>Modifié le '+date+'</span>'+
+      '</div>'+
+      '<div class="saved-deck-actions">'+
+        '<button type="button" class="secondary small-btn" data-load="'+deck.id+'">Ouvrir</button>'+
+        '<button type="button" class="secondary small-btn" data-delete="'+deck.id+'">Supprimer</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  list.querySelectorAll('[data-load]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      const deck=data.find(d=>d.id===btn.dataset.load);
+      if(!deck) return;
+
+      openedDeck=deck;
+      document.getElementById('deck').value=deck.decklist||'';
+      document.getElementById('deckName').value=deck.name||'';
+      document.getElementById('deck').dispatchEvent(new Event('input'));
+
+      await renderDeckDetail(deck);
+      list.querySelectorAll('.saved-deck').forEach(el=>el.classList.toggle('selected',el.dataset.id===deck.id));
+      setDeckMessage('✓ Deck ouvert. La comparaison avec ta collection est affichée ci-dessus.');
+    });
+  });
+
+  list.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      const deck=data.find(d=>d.id===btn.dataset.delete);
+      if(!deck || !confirm('Supprimer définitivement « '+deck.name+' » ?')) return;
+
+      const {error}=await supabaseClient.from('decks').delete().eq('id',deck.id);
+
+      if(error){
+        setDeckMessage('Erreur : '+error.message,true);
+        return;
+      }
+
+      if(openedDeck?.id===deck.id){
+        openedDeck=null;
+        document.getElementById('deckDetail').hidden=true;
+      }
+
+      setDeckMessage('Deck supprimé.');
+      await loadSavedDecks();
+    });
+  });
+}
+
+function normalizeCollectionKey(name){
+  return normalizeCardName(String(name||'')).toLocaleLowerCase();
+}
+
+function getCollectionQuantity(name){
+  const key=normalizeCollectionKey(name);
+  const card=collectionCards.find(c=>normalizeCollectionKey(c.card_name)===key);
+  return card ? Number(card.quantity||0) : 0;
+}
+
+function setCollectionMessage(message,isError=false){
+  const el=document.getElementById('collectionStatus');
+  if(!el) return;
+  el.textContent=message||'';
+  el.style.color=isError?'var(--warn)':'';
+}
+
+async function loadCollection(){
+  if(!currentUser) return;
+  const list=document.getElementById('collectionList');
+  if(!list) return;
+  list.innerHTML='<div class="empty">Chargement de ta collection…</div>';
+
+  const {data,error}=await supabaseClient
+    .from('collection_cards')
+    .select('id,card_name,quantity,created_at,updated_at')
+    .order('card_name',{ascending:true});
+
+  if(error){
+    list.innerHTML='<div class="empty">Impossible de charger la collection.</div>';
+    setCollectionMessage('Erreur : '+error.message,true);
+    return;
+  }
+
+  collectionCards=data||[];
+  renderCollection();
+  hydrateCollectionMetadata().then(()=>{
+    renderCollection();
+    if(openedDeck) renderDeckDetail(openedDeck);
+  });
+  if(openedDeck) await renderDeckDetail(openedDeck);
+}
+
+async function hydrateCollectionMetadata(){
+  await runWithConcurrency(collectionCards,4,async(entry)=>{
+    entry.info=await getDeckCardInfo(entry.card_name);
+  });
+}
+
+function collectionInfo(card){ return card.info||deckCardCache.get(normalizeCollectionKey(card.card_name))||{}; }
+
+function getCollectionPrice(info){
+  const prices=info?.prices||{};
+  for(const value of [prices.eur,prices.eur_foil,prices.usd]){
+    const n=parseFloat(value);
+    if(Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function collectionSectionLabel(type){
+  return ({Creature:'🪽 Créatures',Sorcery:'🌀 Rituels',Instant:'⚡ Éphémères',Artifact:'🏆 Artefacts',Enchantment:'✨ Enchantements',Planeswalker:'👤 Planeswalkers',Battle:'⚔️ Batailles',Land:'🌄 Terrains',Other:'🃏 Autres'})[type]||'🃏 Autres';
+}
+
+function renderCollection(){
+  const total=collectionCards.reduce((sum,c)=>sum+Number(c.quantity||0),0);
+  const totalEl=document.getElementById('collectionTotal');
+  const uniqueEl=document.getElementById('collectionUnique');
+  if(totalEl) totalEl.textContent=total;
+  if(uniqueEl) uniqueEl.textContent=collectionCards.length;
+
+  const list=document.getElementById('collectionList');
+  if(!list) return;
+  if(!collectionCards.length){
+    list.innerHTML='<div class="empty">Ta collection est vide.</div>';
+    return;
+  }
+
+  const search=(document.getElementById('collectionSearch')?.value||'').trim().toLocaleLowerCase();
+  const color=document.getElementById('collectionColor')?.value||'';
+  const typeFilter=document.getElementById('collectionType')?.value||'';
+  const mana=document.getElementById('collectionMana')?.value||'';
+  const sort=document.getElementById('collectionSort')?.value||'name';
+
+  let valueTotal=0, valueKnown=0, cmcTotal=0, cmcQty=0;
+  const colorCounts={W:0,U:0,B:0,R:0,G:0,C:0};
+  const typeCounts={};
+
+  collectionCards.forEach(card=>{
+    const info=collectionInfo(card);
+    const qty=Number(card.quantity||0);
+    const price=getCollectionPrice(info);
+    if(price!==null){ valueTotal+=price*qty; valueKnown+=qty; }
+    if(Number.isFinite(Number(info.cmc))){ cmcTotal+=Number(info.cmc)*qty; cmcQty+=qty; }
+    const colors=Array.isArray(info.color_identity)?info.color_identity:[];
+    if(colors.length) colors.forEach(c=>{if(colorCounts[c]!==undefined) colorCounts[c]+=qty;});
+    else colorCounts.C+=qty;
+    const type=getMainDeckType(info.type_line||'');
+    typeCounts[type]=(typeCounts[type]||0)+qty;
+  });
+
+  const valueEl=document.getElementById('collectionValue');
+  const avgEl=document.getElementById('collectionAvgMana');
+  if(valueEl) valueEl.textContent=valueKnown?valueTotal.toFixed(2)+' €':'—';
+  if(avgEl) avgEl.textContent=cmcQty?(cmcTotal/cmcQty).toFixed(2):'—';
+  const colorNames={W:'⚪ Blanc',U:'🔵 Bleu',B:'⚫ Noir',R:'🔴 Rouge',G:'🟢 Vert',C:'◇ Incolore'};
+  const colorsEl=document.getElementById('collectionColors');
+  if(colorsEl) colorsEl.innerHTML=Object.entries(colorCounts).filter(([,n])=>n).map(([c,n])=>`<span class="summary-pill">${colorNames[c]} ${n}</span>`).join('')||'—';
+  const typesEl=document.getElementById('collectionTypes');
+  if(typesEl) typesEl.innerHTML=Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span class="summary-pill">${t} ${n}</span>`).join('')||'—';
+  const priceNote=document.getElementById('collectionPriceNote');
+  if(priceNote) priceNote.textContent=valueKnown
+    ? `Valeur estimée : ${valueTotal.toFixed(2)} € sur ${valueKnown}/${total} cartes avec un prix disponible.`
+    : 'Les prix apparaîtront après récupération des informations des cartes.';
+
+  let cards=collectionCards.filter(card=>{
+    const info=collectionInfo(card);
+    const hay=[card.card_name,info.oracle_text,info.type_line,info.name].filter(Boolean).join(' ').toLocaleLowerCase();
+    if(search && !hay.includes(search)) return false;
+    const colors=Array.isArray(info.color_identity)?info.color_identity:[];
+    if(color==='C' && colors.length) return false;
+    if(color && color!=='C' && !colors.includes(color)) return false;
+    if(typeFilter && getMainDeckType(info.type_line||'')!==typeFilter) return false;
+    if(mana){
+      const cmc=Number(info.cmc);
+      if(mana==='6' ? cmc<6 : Math.floor(cmc)!==Number(mana)) return false;
+    }
+    return true;
+  });
+
+  const colorKey=card=>{
+    const c=(collectionInfo(card).color_identity||[]).join('');
+    return c||'C';
+  };
+  cards.sort((a,b)=>{
+    const ia=collectionInfo(a), ib=collectionInfo(b);
+    if(sort==='type') return getMainDeckType(ia.type_line||'').localeCompare(getMainDeckType(ib.type_line||''))||a.card_name.localeCompare(b.card_name);
+    if(sort==='color') return colorKey(a).localeCompare(colorKey(b))||a.card_name.localeCompare(b.card_name);
+    if(sort==='mana') return Number(ia.cmc||0)-Number(ib.cmc||0)||a.card_name.localeCompare(b.card_name);
+    if(sort==='priceDesc') return (getCollectionPrice(ib)||-1)-(getCollectionPrice(ia)||-1)||a.card_name.localeCompare(b.card_name);
+    if(sort==='priceAsc') return (getCollectionPrice(ia)??Infinity)-(getCollectionPrice(ib)??Infinity)||a.card_name.localeCompare(b.card_name);
+    return a.card_name.localeCompare(b.card_name);
+  });
+
+  if(!cards.length){
+    list.innerHTML='<div class="empty">Aucune carte ne correspond aux filtres.</div>';
+    return;
+  }
+
+  const groups={Creature:[],Sorcery:[],Instant:[],Artifact:[],Enchantment:[],Planeswalker:[],Battle:[],Land:[],Other:[]};
+  cards.forEach(card=>groups[getMainDeckType(collectionInfo(card).type_line||'')].push(card));
+  const columns=[['Creature'],['Sorcery','Instant'],['Artifact','Enchantment','Planeswalker','Battle','Land','Other']];
+
+  const cardHtml=card=>{
+    const info=collectionInfo(card);
+    const qty=Number(card.quantity||0);
+    const img=info.image||'';
+    const price=getCollectionPrice(info);
+    const meta=[info.type_line,Number.isFinite(Number(info.cmc))?'MV '+Number(info.cmc):''].filter(Boolean).join(' • ');
+    return `<div class="collection-row" data-card-open="${escapeDeckName(card.id)}" title="Clique pour afficher la carte">
+      <div class="collection-thumb">${img?`<img src="${img}" alt="">`:'🃏'}</div>
+      <div class="collection-card-name"><span>${escapeDeckName(card.card_name)}</span><small>${escapeDeckName(meta||'Informations en cours…')}</small>${price!==null?`<div class="collection-price">${price.toFixed(2)} € / carte</div>`:''}</div>
+      <div class="collection-qty"><button class="secondary" type="button" data-minus="${card.id}">−</button><b>${qty}</b><button class="secondary" type="button" data-plus="${card.id}">+</button></div>
+      <div class="collection-actions-inline"><button class="secondary" type="button" data-delete-card="${card.id}">✕</button></div>
+    </div>`;
+  };
+  const sectionHtml=type=>{
+    const entries=groups[type];
+    if(!entries.length) return '';
+    const count=entries.reduce((sum,c)=>sum+Number(c.quantity||0),0);
+    return `<div class="collection-section"><div class="collection-section-title"><span>${collectionSectionLabel(type)}</span><small>(${count})</small></div>${entries.map(cardHtml).join('')}</div>`;
+  };
+  list.innerHTML=columns.map(column=>`<div class="collection-column">${column.map(sectionHtml).join('')}</div>`).join('');
+
+  list.querySelectorAll('[data-card-open]').forEach(row=>row.addEventListener('click',()=>{
+    const card=collectionCards.find(c=>c.id===row.dataset.cardOpen);
+    const info=card&&collectionInfo(card);
+    const src=info?.high||info?.image;
+    if(src){ document.getElementById('modalImage').src=src; document.getElementById('modal').classList.add('show'); }
+  }));
+  list.querySelectorAll('[data-plus]').forEach(btn=>btn.addEventListener('click',async e=>{
+    e.stopPropagation();
+    const card=collectionCards.find(c=>c.id===btn.dataset.plus);
+    if(card) await updateCollectionQuantity(card,Number(card.quantity||0)+1);
+  }));
+  list.querySelectorAll('[data-minus]').forEach(btn=>btn.addEventListener('click',async e=>{
+    e.stopPropagation();
+    const card=collectionCards.find(c=>c.id===btn.dataset.minus);
+    if(!card) return;
+    const next=Number(card.quantity||0)-1;
+    if(next<=0) await deleteCollectionCard(card.id); else await updateCollectionQuantity(card,next);
+  }));
+  list.querySelectorAll('[data-delete-card]').forEach(btn=>btn.addEventListener('click',async e=>{
+    e.stopPropagation();
+    if(confirm('Supprimer cette carte de ta collection ?')) await deleteCollectionCard(btn.dataset.deleteCard);
+  }));
+}
+async function updateCollectionQuantity(card,quantity){
+  const {error}=await supabaseClient
+    .from('collection_cards')
+    .update({quantity})
+    .eq('id',card.id);
+
+  if(error){
+    setCollectionMessage('Erreur : '+error.message,true);
+    return;
+  }
+  await loadCollection();
+}
+
+async function deleteCollectionCard(id){
+  const {error}=await supabaseClient.from('collection_cards').delete().eq('id',id);
+  if(error){
+    setCollectionMessage('Erreur : '+error.message,true);
+    return;
+  }
+  await loadCollection();
+}
+
+async function importCollectionText(rawText){
+  if(!currentUser){
+    setCollectionMessage('Connecte-toi avant d’importer une collection.',true);
+    return;
+  }
+
+  const cards=parseDeck(rawText||'');
+  if(!cards.length){
+    setCollectionMessage('Aucune carte détectée.',true);
+    return;
+  }
+
+  setCollectionMessage('Importation de '+cards.length+' cartes…');
+
+  // Regroupe l'import lui-même pour éviter toute collision de nom.
+  const imported=new Map();
+  cards.forEach(item=>{
+    const key=normalizeCollectionKey(item.name);
+    const existing=imported.get(key);
+    imported.set(key,{
+      name:existing?.name||item.name,
+      qty:(existing?.qty||0)+Number(item.qty||0)
+    });
+  });
+
+  for(const item of imported.values()){
+    const existing=collectionCards.find(c=>normalizeCollectionKey(c.card_name)===normalizeCollectionKey(item.name));
+
+    if(existing){
+      const {error}=await supabaseClient
+        .from('collection_cards')
+        .update({quantity:Number(existing.quantity||0)+item.qty})
+        .eq('id',existing.id);
+      if(error) console.error(error);
+    }else{
+      const {error}=await supabaseClient
+        .from('collection_cards')
+        .insert({
+          user_id:currentUser.id,
+          card_name:item.name,
+          quantity:item.qty
+        });
+      if(error) console.error(error);
+    }
+  }
+
+  document.getElementById('collectionInput').value='';
+  setCollectionMessage('✓ Collection importée.');
+  await loadCollection();
+}
+
+async function getDeckCardInfo(name){
+  const key=normalizeCollectionKey(name);
+  if(typeof deckMetaCache!=='undefined' && deckMetaCache[key]) return deckMetaCache[key];
+  const card=await findCard(name);
+  return {
+    name:card.name||name,
+    type_line:card.type_line||'',
+    color_identity:card.color_identity||[],
+    cmc:Number(card.cmc||0),
+    oracle_text:card.oracle_text||'',
+    scryfall_id:card.id||null
+  };
+}
+
+function getMainDeckType(typeLine){
+  const types=['Creature','Sorcery','Instant','Artifact','Enchantment','Planeswalker','Battle','Land'];
+  return types.find(type=>new RegExp('\\b'+type+'\\b','i').test(typeLine||''))||'Other';
+}
+
+function getBuyLink(cardName){
+  return 'https://www.cardmarket.com/fr/Magic/Products/Search?searchString='+encodeURIComponent(cardName);
+}
+
+/* ===== V0.8.5 — chargement rapide des decks ===== */
+const DECK_META_CACHE_KEY='mtgForgeDeckMetaV1';
+let deckMetaCache={};
+try{ deckMetaCache=JSON.parse(localStorage.getItem(DECK_META_CACHE_KEY)||'{}')||{}; }catch(e){ deckMetaCache={}; }
+function deckMetaKey(name){return normalizeCollectionKey(name);}
+function saveDeckMetaCache(){try{localStorage.setItem(DECK_META_CACHE_KEY,JSON.stringify(deckMetaCache));}catch(e){}}
+
+async function fetchDeckMetadataFast(names){
+  const result=new Map(), missing=[];
+  [...new Set(names.map(String))].forEach(name=>{
+    const key=deckMetaKey(name), cached=deckMetaCache[key];
+    if(cached) result.set(key,cached); else missing.push(name);
+  });
+  for(let i=0;i<missing.length;i+=75){
+    const batch=missing.slice(i,i+75);
+    try{
+      const response=await fetch('https://api.scryfall.com/cards/collection',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({identifiers:batch.map(name=>({name}))})
+      });
+      if(!response.ok) throw new Error('Scryfall '+response.status);
+      const data=await response.json();
+      (data.data||[]).forEach(card=>{
+        const meta={name:card.name||'',type_line:card.type_line||'',color_identity:card.color_identity||[],cmc:Number(card.cmc||0),oracle_text:card.oracle_text||'',scryfall_id:card.id||null};
+        deckMetaCache[deckMetaKey(card.name)]=meta;
+        result.set(deckMetaKey(card.name),meta);
+      });
+      (data.not_found||[]).forEach(x=>{
+        const meta={name:x.name,type_line:'',color_identity:[],cmc:0,oracle_text:'',scryfall_id:null};
+        deckMetaCache[deckMetaKey(x.name)]=meta;
+        result.set(deckMetaKey(x.name),meta);
+      });
+      saveDeckMetaCache();
+    }catch(err){
+      console.warn('Scryfall Collection fallback:',err);
+      for(const name of batch){
+        if(result.has(deckMetaKey(name))) continue;
+        try{
+          const card=await findCard(name);
+          const meta={name:card.name||name,type_line:card.type_line||'',color_identity:card.color_identity||[],cmc:Number(card.cmc||0),oracle_text:card.oracle_text||'',scryfall_id:card.id||null};
+          deckMetaCache[deckMetaKey(name)]=meta;
+          result.set(deckMetaKey(name),meta);
+        }catch(e){
+          result.set(deckMetaKey(name),{name,type_line:'',color_identity:[],cmc:0,oracle_text:'',scryfall_id:null});
+        }
+      }
+      saveDeckMetaCache();
+    }
+  }
+  return result;
+}
+
+async function openDeckCardImage(name){
+  const modal=document.getElementById('modal'), img=document.getElementById('modalImage');
+  if(!modal||!img) return;
+  img.removeAttribute('src'); img.alt='Chargement…'; modal.classList.add('show');
+  try{
+    const card=await findCard(name);
+    const url=card.image_uris?.large||card.image_uris?.normal||card.image_uris?.png;
+    if(url){img.src=url;img.alt=name;} else img.alt='Image indisponible';
+  }catch(e){img.alt='Image indisponible';}
+}
+
+async function renderDeckDetail(deck){
+  const container=document.getElementById('deckDetail');
+  if(!container || !deck) return;
+
+  container.hidden=false;
+  container.innerHTML='<div class="empty">Analyse du deck et comparaison avec ta collection…</div>';
+
+  const commanderName=typeof getCommanderName==='function' ? getCommanderName(deck.decklist||'') : null;
+  const cards=parseDeck(deck.decklist||'');
+
+  const metadata=await fetchDeckMetadataFast(cards.map(item=>item.name));
+  cards.forEach(item=>{
+    item.info=metadata.get(deckMetaKey(item.name))||{name:item.name,type_line:'',color_identity:[],cmc:0,oracle_text:'',scryfall_id:null};
+  });
+
+  const groups={Commander:[],Creature:[],Sorcery:[],Instant:[],Artifact:[],Enchantment:[],Planeswalker:[],Battle:[],Land:[],Other:[]};
+
+  cards.forEach(item=>{
+    const isCommander=commanderName && normalizeCollectionKey(item.name)===normalizeCollectionKey(commanderName);
+    const type=isCommander?'Commander':getMainDeckType(item.info?.type_line||'');
+    groups[type].push(item);
+  });
+
+  let totalCards=0;
+  let totalMissing=0;
+  cards.forEach(item=>{
+    const needed=Number(item.qty||0);
+    const owned=getCollectionQuantity(item.name);
+    totalCards+=needed;
+    totalMissing+=Math.max(0,needed-owned);
+  });
+
+  const missingEl=document.getElementById('collectionMissing');
+  if(missingEl) missingEl.textContent=openedDeck?.id===deck.id ? totalMissing : '—';
+
+  const labels={
+    Commander:'👑 Commander',
+    Creature:'🪽 Créatures',
+    Sorcery:'🌀 Rituels',
+    Instant:'⚡ Éphémères',
+    Artifact:'🏆 Artefacts',
+    Enchantment:'✨ Enchantements',
+    Planeswalker:'👤 Planeswalkers',
+    Battle:'⚔️ Batailles',
+    Land:'🌄 Terrains',
+    Other:'🃏 Autres'
+  };
+
+  const columns=[
+    ['Commander'],
+    ['Creature'],
+    ['Sorcery','Instant'],
+    ['Artifact','Enchantment','Planeswalker','Battle','Land','Other']
+  ];
+
+  const sectionHtml=(type)=>{
+    const entries=groups[type];
+    if(!entries.length) return '';
+    const count=entries.reduce((sum,item)=>sum+Number(item.qty||0),0);
+
+    return `<div class="deck-section">
+      <div class="deck-section-title"><span>${labels[type]}</span><small>(${count})</small></div>
+      ${entries.map(item=>{
+        const needed=Number(item.qty||0);
+        const owned=getCollectionQuantity(item.name);
+        const missing=Math.max(0,needed-owned);
+        const status=owned>=needed?'owned':owned>0?'partial':'missing';
+        const buy=missing>0?`<a class="deck-buy" href="${getBuyLink(item.name)}" target="_blank" rel="noopener">Acheter</a>`:'';
+        return `<div class="deck-card-row ${status}" data-card-name="${escapeDeckName(item.name)}" title="Clique pour afficher la carte">
+          <span>${needed}</span>
+          <span class="deck-card-name" title="${escapeDeckName(item.name)}">${escapeDeckName(item.name)}</span>
+          <span class="deck-card-owned">${owned>=needed?'✓ ':''}${owned}/${needed}${buy}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  };
+
+  container.innerHTML=`
+    <div class="deck-detail-head">
+      <div>
+        <div class="eyebrow">📚 DECK OUVERT</div>
+        <h2>${escapeDeckName(deck.name)}</h2>
+      </div>
+      <div class="deck-detail-stats">
+        <span class="deck-mini-stat">${totalCards} cartes</span>
+        <span class="deck-mini-stat missing">${totalMissing} manquante(s)</span>
+      </div>
+    </div>
+    <div class="deck-columns">
+      ${columns.map(column=>`<div class="deck-column">${column.map(sectionHtml).join('')}</div>`).join('')}
+    </div>
+  `;
+  container.querySelectorAll('[data-deck-card]').forEach(row=>row.addEventListener('click',()=>{
+    const item=cards.find(c=>normalizeCollectionKey(c.name)===normalizeCollectionKey(row.dataset.deckCard));
+    const src=item?.info?.high||item?.info?.image;
+    if(src){ document.getElementById('modalImage').src=src; document.getElementById('modal').classList.add('show'); }
+  }));
+}
+
+document.addEventListener('click',e=>{
+  const row=e.target.closest('#deckDetail .deck-card-row[data-card-name]');
+  if(!row || e.target.closest('a')) return;
+  openDeckCardImage(row.dataset.cardName);
+});
+
+
+function showPage(page){
+  document.querySelectorAll('.page').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+  if(page==='decks' && currentUser) loadSavedDecks();
+  if(page==='collection' && currentUser) loadCollection();
+  window.scrollTo({top:0,behavior:'smooth'});
+  try{history.replaceState(null,'','#'+page)}catch(e){}
+}
+
+document.querySelectorAll('[data-page]').forEach(btn=>{
+  btn.addEventListener('click',()=>showPage(btn.dataset.page));
+});
+
+document.getElementById('accountToggle').addEventListener('click',()=>{
+  const pop=document.getElementById('accountPopover');
+  pop.hidden=!pop.hidden;
+});
+
+document.addEventListener('click',e=>{
+  const pop=document.getElementById('accountPopover');
+  if(pop.hidden) return;
+  if(!pop.contains(e.target) && !e.target.closest('#accountToggle')) pop.hidden=true;
+});
+
+const initialPage=(location.hash||'#analyzer').slice(1);
+if(['analyzer','decks','collection'].includes(initialPage)) setTimeout(()=>showPage(initialPage),0);
+
+document.getElementById('signUp').addEventListener('click',signUp);
+document.getElementById('signIn').addEventListener('click',signIn);
+document.getElementById('signOut').addEventListener('click',signOutUser);
+document.getElementById('saveDeck').addEventListener('click',saveCurrentDeck);
+document.getElementById('refreshDecks').addEventListener('click',loadSavedDecks);
+document.getElementById('importDeck').addEventListener('click',importDeckText);
+document.getElementById('deckImportFile').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  if(file) loadDeckImportFile(file);
+  event.target.value='';
+});
+const deckImportDropzone=document.getElementById('deckImportDropzone');
+['dragenter','dragover'].forEach(evt=>deckImportDropzone.addEventListener(evt,e=>{
+  e.preventDefault();
+  deckImportDropzone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(evt=>deckImportDropzone.addEventListener(evt,e=>{
+  e.preventDefault();
+  deckImportDropzone.classList.remove('drag');
+}));
+deckImportDropzone.addEventListener('drop',e=>loadDeckImportFile(e.dataTransfer.files?.[0]));
+
+
+document.getElementById('refreshCollection').addEventListener('click',loadCollection);
+document.getElementById('importCollection').addEventListener('click',()=>importCollectionText(document.getElementById('collectionInput').value));
+document.getElementById('collectionFile').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>importCollectionText(String(reader.result||''));
+  reader.readAsText(file,'utf-8');
+  event.target.value='';
+});
+
+['collectionSearch','collectionColor','collectionType','collectionMana','collectionSort'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener(id==='collectionSearch'?'input':'change',()=>renderCollection());
+});
+
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+  setAuthUI(session?.user||null);
+});
+
+(async()=>{
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  setAuthUI(session?.user||null);
+})();
+</script>
+
+<script>
+const $=id=>document.getElementById(id);
+
+// ===== Thème clair / sombre =====
+(function initTheme(){
+  const saved=localStorage.getItem('mtgforge_theme');
+  if(saved==='light'){document.documentElement.setAttribute('data-theme','light');$('themeToggle')&&($('themeToggle').textContent='☀️');}
+})();
+$('themeToggle').addEventListener('click',()=>{
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){document.documentElement.removeAttribute('data-theme');$('themeToggle').textContent='🌙';localStorage.setItem('mtgforge_theme','dark');}
+  else{document.documentElement.setAttribute('data-theme','light');$('themeToggle').textContent='☀️';localStorage.setItem('mtgforge_theme','light');}
+});
+
+// ===== Sauvegarde locale de la decklist =====
+(function initDeckSave(){
+  const saved=localStorage.getItem('mtgforge_decklist');
+  if(saved && saved.trim()) $('deck').value=saved;
+})();
+let saveTimer=null;
+$('deck').addEventListener('input',()=>{
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>localStorage.setItem('mtgforge_decklist',$('deck').value),400);
+});
+
+// ===== Import d'un fichier .txt par glisser-déposer =====
+const dropzone=$('dropzone');
+['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.add('drag')}));
+['dragleave','drop'].forEach(evt=>dropzone.addEventListener(evt,e=>{e.preventDefault();dropzone.classList.remove('drag')}));
+dropzone.addEventListener('drop',e=>{
+  const file=e.dataTransfer.files && e.dataTransfer.files[0];
+  if(!file) return;
+  if(!/\.(txt)$/i.test(file.name)){
+    dropzone.textContent='Seuls les fichiers .txt sont acceptés pour le moment.';
+    setTimeout(()=>dropzone.textContent='Glisse un fichier .txt ici pour l\u2019importer',2500);
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=()=>{ $('deck').value=reader.result; localStorage.setItem('mtgforge_decklist',reader.result); };
+  reader.readAsText(file,'utf-8');
+});
+
+let printCards=[];let cardEntries=[];let isCommanderFormat=false;
+
+function normalizeCardName(name){
+  return name
+    .replace(/[\u2018\u2019]/g,"'")
+    .replace(/[\u2010\u2011\u2012\u2013\u2014]/g,"-")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function getCommanderName(text){
+  const lines=text.replace(/\r/g,'').split('\n');
+  let inCommander=false;
+
+  for(const raw of lines){
+    let line=raw.replace(/^\uFEFF/,'').trim();
+    if(!line) continue;
+
+    if(/^(commander|commandant|\[(commander|commandant)\])$/iu.test(line)){
+      inCommander=true;
+      continue;
+    }
+
+    if(inCommander){
+      if(/^(deck|sideboard|companion|maybeboard|\[[^\]]+\])$/iu.test(line)) break;
+
+      line=line.replace(/^[•\-–—]\s*/,'');
+      const m=line.match(/^(\d+)\s*[x×]?\s+(.+?)\s*$/u);
+      const name=normalizeCardName(m ? m[2] : line);
+      return name || null;
+    }
+  }
+
+  return null;
+}
+
+function setProgress(current,total,message='Recherche des cartes…'){
+  const box=$('progressBox');
+  if(!box) return;
+  box.hidden=false;
+  const percent=total ? Math.round((current/total)*100) : 0;
+  $('progressFill').style.width=percent+'%';
+  $('progressText').textContent=message;
+  $('progressCount').textContent=current+' / '+total;
+}
+
+function hideProgress(){
+  const box=$('progressBox');
+  if(box) box.hidden=true;
+}
+
+function applyDeckThemeFromDeck(){
+  const colors=new Set();
+
+  cardEntries.forEach(entry=>{
+    if(!entry.card) return;
+    (entry.card.color_identity||[]).forEach(color=>colors.add(color));
+  });
+
+  if(!colors.size){
+    resetDeckTheme();
+    return;
+  }
+
+  applyDeckTheme({color_identity:[...colors]});
+}
+
+function resetDeckTheme(){
+  const root=document.documentElement;
+  root.style.setProperty('--deck-glow-1','#321505');
+  root.style.setProperty('--deck-glow-2','#070707');
+  root.style.setProperty('--deck-glow-3','#070707');
+}
+
+function applyDeckTheme(card){
+  if(!card){
+    resetDeckTheme();
+    return;
+  }
+
+  const palette={
+    W:'#7b6837',
+    U:'#0b4f78',
+    B:'#35134d',
+    R:'#7a1d08',
+    G:'#1f5c30'
+  };
+
+  const order=['W','U','B','R','G'];
+  const colors=order.filter(c=>(card.color_identity||[]).includes(c));
+
+  if(!colors.length){
+    const root=document.documentElement;
+    root.style.setProperty('--deck-glow-1','#252525');
+    root.style.setProperty('--deck-glow-2','#101010');
+    root.style.setProperty('--deck-glow-3','#070707');
+    return;
+  }
+
+  const root=document.documentElement;
+  root.style.setProperty('--deck-glow-1',palette[colors[0]]);
+  root.style.setProperty('--deck-glow-2',palette[colors[1]||colors[0]]);
+  root.style.setProperty('--deck-glow-3',palette[colors[2]||colors[colors.length-1]]);
+}
+
+function parseDeck(text){
+  const cards=new Map();
+
+  for(const raw of text.replace(/\r/g,'').split('\n')){
+    let line=raw.replace(/^\uFEFF/,'').trim();
+    if(!line) continue;
+
+    // Headings from ManaBox / copied decklists:
+    // [COMMANDER], [CRÉATURES], [ARTÉFACTS], etc.
+    if(/^\[[^\]]+\]$/u.test(line)) continue;
+
+    // Other common section headings.
+    if(/^(commander|commandant|deck|sideboard|companion|maybeboard|créatures|creatures|artefacts|artifacts|éphémères|ephemeres|instants|rituels|sorceries|enchantements|lands|terrains)$/iu.test(line)) continue;
+
+    // Remove bullets occasionally added by apps.
+    line=line.replace(/^[•\-–—]\s*/,'');
+
+const m=line.match(/^(\d+)\s*[x×]?\s+(.+?)\s*$/u);
+
+const qty=m ? Number(m[1]) : 1;
+let name=m ? m[2] : line;
+
+    // ManaBox / Moxfield / Archidekt collector information.
+    // Examples: "Card Name (ABC) 123", "Card Name [ABC] 123"
+    name=name.replace(/\s+\([A-Za-z0-9]{2,8}\)\s+\d+[A-Za-z]*\s*$/u,'');
+    name=name.replace(/\s+\[[A-Za-z0-9]{2,8}\]\s+\d+[A-Za-z]*\s*$/u,'');
+    name=name.replace(/\s+\([A-Za-z0-9]{2,8}\)\s*$/u,'');
+    name=name.replace(/\s+\[[A-Za-z0-9]{2,8}\]\s*$/u,'');
+
+    name=normalizeCardName(name);
+    if(!name) continue;
+
+    const key=name.toLocaleLowerCase();
+    cards.set(key,{name,qty:(cards.get(key)?.qty||0)+qty});
+  }
+  return [...cards.values()];
+}
+
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function fetchJSON(url, retries=6){
+  let lastError;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const r=await fetch(url,{headers:{'Accept':'application/json'}});
+      if(r.ok) return await r.json();
+
+      // Scryfall can temporarily rate-limit a long deck import.
+      if((r.status===429 || r.status>=500) && attempt<retries){
+        const retryAfter=Number(r.headers.get('Retry-After'));
+        await sleep(Number.isFinite(retryAfter) ? retryAfter*1000 : 1200*(attempt+1));
+        continue;
+      }
+      throw new Error('HTTP '+r.status);
+    }catch(e){
+      lastError=e;
+      if(attempt<retries) await sleep(900*(attempt+1));
+    }
+  }
+  throw lastError||new Error('Request failed');
+}
+
+async function findCard(name){
+  const clean=normalizeCardName(name);
+
+  // 1) Exact canonical name only. Never substitute another card.
+  let exact;
+  try{
+    exact=await fetchJSON('https://api.scryfall.com/cards/named?exact='+encodeURIComponent(clean), 5);
+  }catch(e){
+    // 2) Fuzzy fallback is accepted ONLY if Scryfall returns the same normalized name.
+    const fuzzy=await fetchJSON('https://api.scryfall.com/cards/named?fuzzy='+encodeURIComponent(clean), 5);
+    if(normalizeCardName(fuzzy.name).toLowerCase()!==clean.toLowerCase()){
+      throw new Error('Nom ambigu: '+clean+' → '+fuzzy.name);
+    }
+    exact=fuzzy;
+  }
+
+  // 3) Find a French printing, but verify the returned card name exactly.
+  try{
+    const q=encodeURIComponent('!"'+clean.replace(/"/g,'\\"')+'" lang:fr');
+    const prints=await fetchJSON('https://api.scryfall.com/cards/search?q='+q+'&unique=prints', 5);
+    const fr=prints.data?.find(c=>
+      c.lang==='fr' &&
+      normalizeCardName(c.name).toLowerCase()===clean.toLowerCase()
+    );
+    if(fr) return fr;
+  }catch(e){}
+
+  return exact;
+}
+
+// Récupère toutes les éditions/illustrations disponibles pour une carte (best-effort,
+// utilisé uniquement pour le sélecteur d'illustration — un échec ici n'empêche pas
+// l'analyse principale de fonctionner).
+async function fetchAllPrints(name){
+  const clean=normalizeCardName(name);
+  try{
+    const q=encodeURIComponent('!"'+clean.replace(/"/g,'\\"')+'"');
+    const res=await fetchJSON('https://api.scryfall.com/cards/search?q='+q+'&unique=prints&order=released&dir=desc', 3);
+    const data=(res.data||[]).filter(c=>normalizeCardName(c.name).toLowerCase()===clean.toLowerCase());
+    // Éditions françaises en premier, pour un choix rapide, puis le reste par date.
+    data.sort((a,b)=>(a.lang==='fr'?-1:0)-(b.lang==='fr'?-1:0));
+    return data;
+  }catch(e){
+    return [];
+  }
+}
+
+function image(card,size){
+  return card.image_uris?.[size] ||
+    card.card_faces?.[0]?.image_uris?.[size] ||
+    card.image_uris?.small ||
+    card.card_faces?.[0]?.image_uris?.small || '';
+}
+
+function isBasicLandCard(card){
+  return card.basic === true ||
+    /\bBasic\b/i.test(card.type_line || '') ||
+    /\bde base\b/i.test(card.type_line || '') ||
+    /^(Plains|Island|Swamp|Mountain|Forest|Plaine|Île|Ile|Marais|Montagne|Forêt|Foret)$/i.test(card.name);
+}
+
+function escapeHtml(value){
+  return value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Traite une liste d'items avec au plus `limit` requêtes en vol simultanément.
+// Garde le comportement "poli" vis-à-vis de l'API Scryfall (pas de rafale illimitée)
+// tout en étant bien plus rapide qu'une boucle strictement séquentielle.
+async function runWithConcurrency(items, limit, worker){
+  let cursor=0;
+  const runners=Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(cursor<items.length){
+      const i=cursor++;
+      await worker(items[i], i);
+    }
+  });
+  await Promise.all(runners);
+}
+
+function applyCardToRow(row, idx, card){
+  const item=cardEntries[idx].item;
+  const small=image(card,'small');
+  const high=image(card,'png') || image(card,'large');
+
+  const picEl=row.querySelector('.pic, .card-thumb');
+  if(small){
+    const im=document.createElement('img');
+    im.className='card-thumb';
+    im.src=small; im.alt=item.name; im.loading='lazy';
+    im.addEventListener('click',()=>{ $('modalImage').src=high||small; $('modal').classList.add('show'); });
+    if(picEl) picEl.replaceWith(im); else row.prepend(im);
+  }
+
+  row.querySelector('.meta').textContent=(card.set_name||'Édition inconnue')+' • '+(card.lang||'en').toUpperCase();
+  row.querySelector('.status').textContent=card.lang==='fr'?'✓ FR':'✓ Trouvée';
+
+  cardEntries[idx].card=card;
+  cardEntries[idx].high=high;
+  cardEntries[idx].isBasicLand=isBasicLandCard(card);
+}
+
+function renderPrintPicker(row, idx){
+  const btn=row.querySelector('.edition-btn');
+  const panel=row.querySelector('.print-picker');
+  btn.hidden=false;
+  btn.textContent='🎨 Éditions';
+
+  btn.onclick=async(e)=>{
+    e.stopPropagation();
+    const entry=cardEntries[idx];
+
+    if(panel.classList.contains('open')){
+      panel.classList.remove('open');
+      return;
+    }
+
+    if(entry.prints===null){
+      btn.disabled=true;
+      btn.textContent='…';
+      entry.prints=await fetchAllPrints(entry.item.name);
+      if(!entry.prints.length) entry.prints=[entry.card];
+      btn.disabled=false;
+    }
+
+    if(entry.prints.length<2){
+      btn.textContent='🎨 Seule édition';
+      return;
+    }
+
+    btn.textContent='🎨 '+entry.prints.length+' éditions';
+    panel.innerHTML=entry.prints.map((p,i)=>{
+      const thumb=image(p,'small');
+      if(!thumb) return '';
+      const chosen=p.id===entry.card.id?' chosen':'';
+      return '<img src="'+thumb+'" data-printidx="'+i+'" class="'+chosen.trim()+'" title="'+escapeHtml((p.set_name||'')+' • '+(p.lang||'').toUpperCase())+'">';
+    }).join('');
+    panel.querySelectorAll('img').forEach(img=>{
+      img.addEventListener('click',ev=>{
+        ev.stopPropagation();
+        const p=entry.prints[Number(img.dataset.printidx)];
+        applyCardToRow(row, idx, p);
+        panel.querySelectorAll('img').forEach(i=>i.classList.remove('chosen'));
+        img.classList.add('chosen');
+        panel.classList.remove('open');
+      });
+    });
+    panel.classList.add('open');
+  };
+}
+
+function getAnalyzedCards(){
+  return cardEntries.filter(e=>e.status==='found' && e.card).map(e=>({
+    qty:e.item.qty,
+    type_line:e.card.type_line||'',
+    cmc:Number(e.card.cmc)||0,
+    color_identity:e.card.color_identity||[],
+    legalities:e.card.legalities||{}
+  }));
+}
+
+function updateStats(){
+  const found=cardEntries.filter(e=>e.status==='found').length;
+  const fr=cardEntries.filter(e=>e.status==='found' && e.card.lang==='fr').length;
+  const bad=cardEntries.filter(e=>e.status==='bad').length;
+  $('stats').textContent='✓ '+found+' reconnues • 🇫🇷 '+fr+' FR • ⚠ '+bad+' à vérifier';
+  return {found,fr,bad};
+}
+
+// Résout (ou re-résout) une carte de la decklist auprès de Scryfall et met à jour
+// la ligne correspondante. Utilisée à l'analyse initiale ET quand on reclique sur
+// une carte "à vérifier" pour relancer une recherche identique (jamais une autre carte).
+async function resolveCardEntry(item, idx, row){
+  try{
+    const card=await findCard(item.name);
+    cardEntries[idx].card=card;
+    cardEntries[idx].status='found';
+    cardEntries[idx].prints=null; // chargées à la demande, voir renderPrintPicker
+    row.classList.remove('retryable');
+    applyCardToRow(row, idx, card);
+    renderPrintPicker(row, idx);
+    return true;
+  }catch(e){
+    cardEntries[idx].status='bad';
+    row.classList.add('retryable');
+    row.querySelector('.meta').textContent='Carte non reconnue';
+    row.querySelector('.status').textContent='À vérifier — cliquer pour réessayer';
+    row.querySelector('.status').style.color='var(--warn)';
+    return false;
+  }
+}
+
+async function analyzeDeck(){
+  const rawText=$('deck').value;
+  isCommanderFormat=/^\s*(commander|commandant|\[(commander|commandant)\])\s*$/im.test(rawText);
+
+  const cards=parseDeck(rawText);
+  $('results').innerHTML='';
+  $('pdfPrint').innerHTML='';
+  cardEntries=cards.map(item=>({item, card:null, prints:null, high:'', isBasicLand:false, status:'pending'}));
+  $('analysisBox').style.display='none';
+  printCards=[];
+  $('pdf').disabled=true;
+  $('pdfmsg').textContent='';
+  resetDeckTheme();
+
+  if(!cards.length){
+    $('stats').textContent='Aucune carte reconnue.';
+    $('results').innerHTML='<div class="empty">Vérifie le format : 1 Nom de carte.</div>';
+    hideProgress();
+    return;
+  }
+
+  setProgress(0,cards.length,'Préparation de l’analyse…');
+
+  const rows=cards.map((item, idx)=>{
+    const row=document.createElement('div');
+    row.className='card';
+    row.innerHTML=
+      '<div class="pic"></div>'+
+      '<div class="card-info">'+
+        '<b>'+escapeHtml(item.qty+' × '+item.name)+'</b>'+
+        '<div class="meta">Recherche…</div>'+
+        '<div class="print-picker"></div>'+
+      '</div>'+
+      '<div class="status-col">'+
+        '<div class="status">…</div>'+
+        '<button type="button" class="edition-btn secondary" hidden></button>'+
+      '</div>';
+
+    row.addEventListener('click', async ()=>{
+      const entry=cardEntries[idx];
+      if(entry.status!=='bad' || entry.retrying) return;
+
+      entry.retrying=true;
+      row.querySelector('.status').textContent='Nouvelle recherche…';
+      row.querySelector('.status').style.color='';
+      row.querySelector('.meta').textContent='Recherche…';
+
+      const ok=await resolveCardEntry(item, idx, row);
+      entry.retrying=false;
+      updateStats();
+
+      if(ok){
+        renderDeckAnalysis();
+        renderSingletonWarning();
+
+        applyDeckThemeFromDeck();
+
+        $('pdf').disabled=false;
+        $('pdfmsg').textContent='La version imprimée utilise la meilleure image disponible (PNG haute résolution si disponible).';
+      }
+    });
+
+    $('results').append(row);
+    return row;
+  });
+
+  let completed=0;
+
+  await runWithConcurrency(cards, 1, async(item, idx)=>{
+    try{
+      await resolveCardEntry(item, idx, rows[idx]);
+    }finally{
+      completed++;
+      updateStats();
+      applyDeckThemeFromDeck();
+
+      setProgress(
+        completed,
+        cards.length,
+        completed===cards.length ? 'Analyse terminée' : 'Recherche des cartes…'
+      );
+    }
+  });
+
+  const {found}=updateStats();
+
+  if(found) renderDeckAnalysis();
+  renderSingletonWarning();
+
+  applyDeckThemeFromDeck();
+
+  if(found>0){
+    $('pdf').disabled=false;
+    $('pdfmsg').textContent='La version imprimée utilise la meilleure image disponible (PNG haute résolution si disponible).';
+  }
+
+  setTimeout(hideProgress,800);
+}
+
+function renderSingletonWarning(){
+  const box=$('singletonWarning');
+  if(!isCommanderFormat){ box.innerHTML=''; return; }
+  const offenders=cardEntries.filter(e=>e.card && !e.isBasicLand && e.item.qty>1);
+  if(!offenders.length){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="warning-box"><b>⚠ Format Commander : ' + offenders.length + ' carte(s) en plusieurs exemplaires.</b><br>'+
+    'Le Commander est un format en singleton (1 exemplaire max hors terrains de base) : '+
+    offenders.map(e=>escapeHtml(e.item.qty+'× '+e.item.name)).join(', ')+'.</div>';
+}
+
+function renderDeckAnalysis(){
+const analyzedCards=getAnalyzedCards();
+const total=analyzedCards.reduce((s,c)=>s+c.qty,0), isLand=c=>/\bLand\b/i.test(c.type_line), lands=analyzedCards.filter(isLand).reduce((s,c)=>s+c.qty,0), nonland=total-lands, avg=nonland?analyzedCards.filter(c=>!isLand(c)).reduce((s,c)=>s+c.cmc*c.qty,0)/nonland:0;
+$('aTotal').textContent=total;$('aLands').textContent=lands;$('aNonland').textContent=nonland;$('aUnique').textContent=analyzedCards.length;$('aAvg').textContent=avg.toFixed(2);
+const order=['W','U','B','R','G'], set=new Set();analyzedCards.forEach(c=>c.color_identity.forEach(x=>set.add(x)));const cols=order.filter(x=>set.has(x));$('aColors').textContent=cols.length?cols.join(''):'◈';$('colorPips').innerHTML=order.map(c=>'<div class="pip '+(set.has(c)?'active':'')+'">'+c+'</div>').join('');
+const types=['Creature','Artifact','Enchantment','Instant','Sorcery','Planeswalker','Battle','Land'];const counts={};types.forEach(t=>counts[t]=0);analyzedCards.forEach(c=>types.forEach(t=>{if(new RegExp('\\b'+t+'\\b','i').test(c.type_line))counts[t]+=c.qty}));$('typeList').innerHTML=types.filter(t=>counts[t]).map(t=>'<div class="type-row"><span>'+t+'</span><b>'+counts[t]+'</b></div>').join('');
+const b=Array(7).fill(0);analyzedCards.filter(c=>!isLand(c)).forEach(c=>b[Math.min(6,Math.floor(c.cmc))]+=c.qty);const max=Math.max(1,...b);$('manaChart').innerHTML=b.map((n,i)=>'<div class="mana-col"><span class="mana-count">'+n+'</span><div class="mana-bar" style="height:'+Math.max(2,Math.round(n/max*115))+'px"></div><span class="mana-num">'+(i===6?'6+':i)+'</span></div>').join('');$('analysisBox').style.display='block';
+
+// Légalité par format (uniquement les cartes non-terrain-de-base reconnues sont considérées).
+const formats=[['commander','Commander'],['standard','Standard'],['modern','Modern'],['pioneer','Pioneer'],['legacy','Legacy'],['pauper','Pauper']];
+const checkable=analyzedCards.filter(c=>c.legalities && Object.keys(c.legalities).length);
+$('legalList').innerHTML=formats.map(([key,label])=>{
+  if(!checkable.length) return '<span class="legal-pill">'+label+' : ?</span>';
+  const allLegal=checkable.every(c=>c.legalities[key]==='legal');
+  return '<span class="legal-pill '+(allLegal?'ok':'no')+'">'+label+(allLegal?' ✓':' —')+'</span>';
+}).join('');
+
+// Estimation de prix (best-effort, à partir des éditions actuellement choisies).
+let priceTotal=0, priceKnown=0, priceMissing=0;
+cardEntries.forEach(e=>{
+  if(!e.card) return;
+  const p=parseFloat(e.card.prices?.eur);
+  if(!isNaN(p)){ priceTotal+=p*e.item.qty; priceKnown+=e.item.qty; }
+  else priceMissing+=e.item.qty;
+});
+$('priceNote').textContent=priceKnown
+  ? 'Estimation : ~'+priceTotal.toFixed(2)+' € (éditions sélectionnées) sur '+priceKnown+' cartes avec prix connu'+(priceMissing?', '+priceMissing+' sans prix disponible.':'.')
+  : 'Prix indisponible pour ces cartes.';
+}
+$('analyze').addEventListener('click',analyzeDeck);
+
+const PAPER={
+  a4:{w:210,h:297,usableWidth:193},
+  letter:{w:215.9,h:279.4,usableWidth:198.9}
+};
+
+function buildPrintLayout(){
+  let gap=Math.max(0,Math.min(3.5,Number($('gap').value)||0));
+  const cropMarks=$('cropMarks').checked;
+  const printBacks=$('printBacks').checked;
+  const paperKey=$('paperFormat').value==='letter'?'letter':'a4';
+  const paper=PAPER[paperKey];
+
+  // Les repères de découpe ont besoin d'un minimum d'espace visible entre les cartes.
+  if(cropMarks && gap<1){ gap=1; $('gap').value='1'; }
+
+  const cardW=(paper.usableWidth-(2*gap))/3;
+  const cardH=cardW*(88/63);
+
+  const container=$('pdfPrint');
+  container.innerHTML='';
+  container.style.setProperty('--page-w',paper.w+'mm');
+  container.style.setProperty('--page-h',paper.h+'mm');
+  container.style.setProperty('--print-gap',gap+'mm');
+  container.style.setProperty('--print-card-w',cardW.toFixed(3)+'mm');
+  container.style.setProperty('--print-card-h',cardH.toFixed(3)+'mm');
+
+  const removeBasics=$('excludeBasics') && $('excludeBasics').checked;
+
+  // Reconstruit la liste à imprimer à partir de l'édition actuellement choisie
+  // pour chaque carte (peut avoir changé depuis l'analyse initiale).
+  printCards=[];
+  cardEntries.forEach(e=>{
+    if(!e.card || !e.high) return;
+    if(removeBasics && e.isBasicLand) return;
+    for(let i=0;i<e.item.qty;i++){
+      printCards.push({image:e.high, name:e.card.name});
+    }
+  });
+
+  // Sans dos de carte : une seule grille continue, le navigateur gère lui-même
+  // la pagination à l'impression (comportement simple et fiable).
+  if(!printBacks){
+    const p=document.createElement('div');
+    p.className='print-page'+(cropMarks?' crop-marks':'');
+    printCards.forEach(card=>{
+      const pc=document.createElement('div');
+      pc.className='print-card';
+      const img=document.createElement('img');
+      img.src=card.image; img.alt=card.name; img.loading='eager';
+      pc.appendChild(img);
+      p.appendChild(pc);
+    });
+    container.appendChild(p);
+    return;
+  }
+
+  // Avec dos de carte : on doit découper nous-mêmes en pages de 3 colonnes pour
+  // savoir exactement quelles cartes tombent sur quelle feuille, et construire
+  // la page de dos correspondante juste après (miroir gauche/droite par ligne).
+  const pageUsableHeight=paper.h-2*8.5;
+  const rowsPerPage=Math.max(1,Math.floor((pageUsableHeight+gap)/(cardH+gap)));
+  const perPage=rowsPerPage*3;
+
+  const pages=[];
+  for(let i=0;i<printCards.length;i+=perPage){
+    pages.push(printCards.slice(i,i+perPage));
+  }
+  if(!pages.length) pages.push([]);
+
+  const buildFrontPage=(cards)=>{
+    const p=document.createElement('div');
+    p.className='print-page'+(cropMarks?' crop-marks':'');
+    cards.forEach(card=>{
+      const pc=document.createElement('div');
+      pc.className='print-card';
+      const img=document.createElement('img');
+      img.src=card.image; img.alt=card.name; img.loading='eager';
+      pc.appendChild(img);
+      p.appendChild(pc);
+    });
+    return p;
+  };
+
+  const buildBackPage=(cards)=>{
+    const p=document.createElement('div');
+    p.className='print-page'+(cropMarks?' crop-marks':'');
+    // Complète la dernière rangée avec des cases invisibles pour garder l'alignement.
+    const padded=cards.slice();
+    while(padded.length%3!==0) padded.push(null);
+    // Miroir gauche/droite par rangée de 3, pour un retournement sur le bord long.
+    for(let r=0;r<padded.length;r+=3){
+      const row=padded.slice(r,r+3).reverse();
+      row.forEach(card=>{
+        const pc=document.createElement('div');
+        pc.className='print-card'+(card?'':' blank');
+        if(card){
+          const back=document.createElement('div');
+          back.className='cardback';
+          back.innerHTML='<div class="cardback-emblem">PROXY</div>';
+          pc.appendChild(back);
+        }
+        p.appendChild(pc);
+      });
+    }
+    return p;
+  };
+
+  pages.forEach(cards=>{
+    container.appendChild(buildFrontPage(cards));
+    container.appendChild(buildBackPage(cards));
+  });
+}
+
+$('pdf').addEventListener('click', async ()=>{
+  if($('pdf').disabled) return;
+
+  buildPrintLayout();
+
+  const images=[...$('pdfPrint').querySelectorAll('img')];
+
+  await Promise.all(
+    images.map(img=>{
+      if(img.complete && img.naturalWidth>0) return Promise.resolve();
+      return new Promise(resolve=>{
+        img.onload=resolve;
+        img.onerror=resolve;
+      });
+    })
+  );
+
+  window.print();
+});
+
+$('clear').addEventListener('click',()=>{
+  $('deck').value='';
+  localStorage.removeItem('mtgforge_decklist');
+  hideProgress();
+  resetDeckTheme();
+  $('results').innerHTML='<div class="empty">Lance l\u2019analyse pour commencer.</div>';
+  $('pdfPrint').innerHTML=''; printCards=[]; cardEntries=[]; $('analysisBox').style.display='none';
+  $('singletonWarning').innerHTML='';
+  $('stats').textContent='';
+  $('pdf').disabled=true;
+  $('pdfmsg').textContent='';
+});
+$('closeModal').addEventListener('click',e=>{e.stopPropagation();$('modal').classList.remove('show')});
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))$('modal').classList.remove('show')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('modal').classList.remove('show')});
+</script>
+</body>
+</html>
